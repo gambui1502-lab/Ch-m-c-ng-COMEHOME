@@ -94,7 +94,20 @@ td:has(>input[data-v=K]:checked){background:color-mix(in srgb,var(--ck) 18%,var(
 input[type=checkbox]:disabled{opacity:.25;cursor:not-allowed}
 td input[type=number],td input[type=text]{width:64px;padding:5px;border:1px solid var(--bd);border-radius:6px;background:var(--bg)}
 td input[type=text]{width:130px}
+td.nm input.sn{width:100%;min-width:170px}
+tr.sup td.nm input.sn::placeholder{color:var(--mu);font-style:italic}
 .sum td,.sum th{padding:8px}
+.dsh h3{font-size:16px;margin:16px 0 6px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:8px 0}
+.kpi{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px 10px}
+.kpi small{font-size:12px}.kpi b{font-size:22px}
+.hl{display:flex;flex-direction:column;gap:4px;margin:8px 0;font-size:14px}
+.hl span{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:6px 10px}
+.dsh table{min-width:0}.dsh td.l{text-align:left;white-space:nowrap}
+.hm td{min-width:34px;font-size:12px;padding:3px}
+.b100{display:flex;height:22px;border-radius:6px;overflow:hidden;min-width:200px;background:var(--bd)}
+.b100 i{display:flex;align-items:center;justify-content:center;font-size:11px;font-style:normal;color:#fff;overflow:hidden}
+.bg{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600;color:#fff}
 .sum tfoot td{font-weight:700;background:var(--prl)}
 @media(max-width:600px){.quick .big{width:100%}.act .big{flex:1 1 100%}.frm label{flex:1 1 100%}.frm input,.frm input.ro{width:100%}.frm input.ro{text-align:left}}
 </style>
@@ -152,7 +165,7 @@ td input[type=text]{width:130px}
     </div>
   </section>
 </details>
-<p class="hint">Bấm ô để tick, bấm lần nữa để bỏ tick. Đã tick Làm thì Phép / Không phép bị khóa (và ngược lại). Thêm người: bấm “＋ Thêm người” ở cuối mỗi nhóm. Cột Đi trễ, Ra ngoài, Xuống ca, Tăng ca chỉ cần tick để ghi nhận. Cột Giờ thực: ghi khung giờ làm ngoài giờ chính thức (tăng ca, đi hỗ trợ tổ khác…), không cần tính ra số giờ. Chấm xong bấm “💾 Lưu – chấm xong”. Dữ liệu tự đồng bộ lên mạng khi có kết nối.</p>
+<p class="hint">Bấm ô để tick, bấm lần nữa để bỏ tick. Đã tick Làm thì Phép / Không phép bị khóa (và ngược lại). Thêm người: bấm “＋ Thêm người” ở cuối mỗi nhóm. Người tổ khác sang giúp: gõ tên vào các dòng trống ở mục “Hỗ trợ” cuối bảng của tổ (lưu theo từng ngày, tự thêm dòng trống khi dùng hết). Cột Đi trễ, Ra ngoài, Xuống ca, Tăng ca chỉ cần tick để ghi nhận. Cột Giờ thực: ghi khung giờ làm ngoài giờ chính thức (tăng ca, đi hỗ trợ tổ khác…), không cần tính ra số giờ. Chấm xong bấm “💾 Lưu – chấm xong”. Dữ liệu tự đồng bộ lên mạng khi có kết nối.</p>
 <div id="main"></div>
 
 <script>
@@ -226,10 +239,15 @@ function tryLogin(){
 function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}push()}
 
 /* ===== Dữ liệu chấm công ===== */
-const E={s:'',c:'',late:'',out:'',down:'',ot:'',real:'',note:''};
+const E={s:'',c:'',late:'',out:'',down:'',ot:'',real:'',note:'',nm:''};
+/* Mục Hỗ trợ: người tổ khác sang giúp – gõ tên theo từng ngày, ở cuối danh sách mỗi tổ (luôn có tối thiểu 3 dòng trống) */
+const supId=(tid,i)=>tid+'|HT|'+i;
+const supN=(tid,d=date)=>{let m=0;for(let i=1;i<=60;i++){const r=S.att[d]&&S.att[d][supId(tid,i)];if(r&&String(r.nm||'').trim())m=i}return Math.max(3,m+1)};
+const supNamed=(tid,d=date)=>{let c=0;const n=supN(tid,d);for(let i=1;i<=n;i++)if(String(A(supId(tid,i),d).nm||'').trim())c++;return c};
 const A=(id,d=date)=>(S.att[d]&&S.att[d][id])||E;
 const W=id=>{S.att[date]=S.att[date]||{};return S.att[date][id]=S.att[date][id]||{...E}};
 const K=(n,d=date)=>+(S.cnt[d]&&S.cnt[d][n])||0;
+const KT=(n,d=date)=>{const k=n+'|tong';if(S.cnt[d]&&S.cnt[d][k]!==undefined)return +S.cnt[d][k]||0;const ks=Object.keys(S.cnt).filter(x=>x<d&&S.cnt[x]&&S.cnt[x][k]!==undefined).sort();return ks.length?(+S.cnt[ks[ks.length-1]][k]||0):0};
 const st=r=>r.s=='L'||r.c=='L'?'L':r.s=='P'||r.c=='P'?'P':r.s=='K'||r.c=='K'?'K':'';
 const TR=/(\d{1,2})(?:[:h.](\d{1,2}))?h?\s*[-–]\s*(\d{1,2})(?:[:h.](\d{1,2}))?h?/;
 function hrs(x){const m=TR.exec(x||'');if(!m)return 0;let d=(+m[3]*60+ +(m[4]||0))-(+m[1]*60+ +(m[2]||0));if(d<0)d+=1440;return d/60}
@@ -358,8 +376,8 @@ function teamHTML(t){
   t.groups.forEach((g,gi)=>{
     h+=`<tr class="gh"><td colspan="14"><div class="sg">${esc(g.n)}${edit?`<button data-act="rng" data-gi="${gi}">✎ Đổi tên</button><button data-act="dlg" data-gi="${gi}">✕ Xoá nhóm</button>`:''}</div></td></tr>`;
     if(g.k){
-      g.k.forEach((n,i)=>h+=`<tr><td class="sk1">${i+1}</td><td class="sk2 nm">${esc(n)}${edit?`<button data-act="delk" data-gi="${gi}" data-wi="${i}">✕</button>`:''}</td><td colspan="12" class="l">Số người đi làm: <input type="number" min="0" data-cnt="${esc(n)}" value="${K(n)||''}"> người</td></tr>`);
-      h+=`<tr class="gf"><td colspan="14"><div class="sg">${edit?`<button data-act="addk" data-gi="${gi}">＋ Thêm dòng khoán</button> &nbsp;`:''}Tổng: <b>${g.k.reduce((a,n)=>a+K(n),0)}</b> người</div></td></tr>`;
+      g.k.forEach((n,i)=>h+=`<tr><td class="sk1">${i+1}</td><td class="sk2 nm">${esc(n)}${edit?`<button data-act="delk" data-gi="${gi}" data-wi="${i}">✕</button>`:''}</td><td colspan="12" class="l">Số người đi làm: <input type="number" min="0" data-cnt="${esc(n)}" value="${K(n)||''}"> &nbsp;/&nbsp; Tổng số của đội: <input type="number" min="0" data-cnt="${esc(n)}|tong" value="${KT(n)||''}"> người${KT(n)?` &nbsp;<span class="pst">· Vắng ${Math.max(0,KT(n)-K(n))}</span>`:''}</td></tr>`);
+      if(edit)h+=`<tr class="gf"><td colspan="14"><div class="sg"><button data-act="addk" data-gi="${gi}">＋ Thêm dòng khoán</button></div></td></tr>`;
       return;
     }
     let c=0;
@@ -373,6 +391,18 @@ function teamHTML(t){
     });
     h+=`<tr class="gf"><td colspan="14"><div class="sg"><button data-act="add" data-gi="${gi}">＋ Thêm người</button> &nbsp;Làm: <b>${c}</b>/${g.w.length}</div></td></tr>`;
   });
+  /* ===== Hỗ trợ: người tổ khác sang giúp ===== */
+  h+=`<tr class="gh"><td colspan="14"><div class="sg">Hỗ trợ <small style="display:inline;font-weight:400">(người tổ khác sang giúp – gõ tên vào dòng trống)</small></div></td></tr>`;
+  const sn=supN(t.id);let sc=0;
+  for(let i=1;i<=sn;i++){
+    const id=supId(t.id,i),r=A(id),nmv=String(r.nm||'').trim();if(nmv&&st(r)=='L')sc++;
+    h+=`<tr class="sup"><td class="sk1">${i}</td><td class="sk2 nm"><input type="text" class="sn" data-sn="${esc(id)}" placeholder="Nhập tên người hỗ trợ…" value="${esc(r.nm||'')}"></td>`
+      +ck(id,'s','L',r)+ck(id,'s','P',r)+ck(id,'s','K',r)+ck(id,'c','L',r)+ck(id,'c','P',r)+ck(id,'c','K',r)
+      +tn(id,'late',r)+tn(id,'out',r)+tn(id,'down',r)+tn(id,'ot',r)
+      +`<td><input type="text" data-f="real" data-id="${esc(id)}" value="${esc(r.real)}"></td>`
+      +`<td><input type="text" data-f="note" data-id="${esc(id)}" value="${esc(r.note)}" placeholder="Từ tổ nào…"></td></tr>`;
+  }
+  h+=`<tr class="gf"><td colspan="14"><div class="sg">Hỗ trợ: <b>${sc}</b> người làm / ${supNamed(t.id)} người có tên</div></td></tr>`;
   if(edit)h+=`<tr class="gf"><td colspan="14"><div class="sg"><button data-act="addg">＋ Thêm nhóm</button></div></td></tr>`;
   return h+'</tbody></table></div>';
 }
@@ -385,12 +415,12 @@ function tsum(t){
   });
   return `<div class="tsum"><b>👥 Tổng: ${tot} người</b><span class="sub">(Chính thức ${ct} · Thời vụ ${tv})</span>`
     +`<span style="color:var(--cl)">✔ Làm ${lam}</span><span style="color:var(--cp)">Phép ${phep}</span><span style="color:var(--ck)">K.phép ${kp}</span><span>Chưa chấm ${chua}</span>`
-    +(khoan?`<span>Đội khoán ${khoan} người</span>`:'')+`</div>`;
+    +t.groups.filter(g=>g.k).flatMap(g=>g.k).map(n=>`<span>${esc(n)}: <b>${K(n)}</b>${KT(n)?'/'+KT(n):''} người</span>`).join('')+(supNamed(t.id)?`<span>🤝 Hỗ trợ đến ${supNamed(t.id)} người</span>`:'')+`</div>`;
 }
 function sumHTML(){
-  const rows=[],tot=Array(8).fill(0);
+  const rows=[],tot=Array(9).fill(0);
   S.teams.forEach(t=>{
-    const v=Array(8).fill(0);
+    const v=Array(9).fill(0);v[8]=supNamed(t.id);
     t.groups.forEach(g=>{
       if(g.k){g.k.forEach(n=>v[6]+=K(n));return}
       g.w.forEach(w=>{const r=A(w.id),s=st(r);v[0]++;
@@ -399,8 +429,8 @@ function sumHTML(){
     });
     v.forEach((x,i)=>tot[i]+=x);rows.push([t.name,v]);
   });
-  const tr=(n,v,tag)=>`<tr><${tag} class="l">${esc(n)}</${tag}>`+[v[0],v[1],v[2],v[1]+v[2],v[3],v[4],v[5],v[6],v[7]].map(x=>`<${tag}>${x}</${tag}>`).join('')+'</tr>';
-  return `<div class="wrap"><table class="sum" style="min-width:820px"><thead><tr><th class="l">Tổ</th><th>Tổng nhân sự</th><th>Làm (Chính thức)</th><th>Làm (Thời vụ)</th><th>Tổng Làm</th><th>Phép</th><th>K.phép</th><th>Chưa chấm</th><th>Đội Khoán (người)</th><th>Lượt tăng ca</th></tr></thead><tbody>${rows.map(([n,v])=>tr(n,v,'td')).join('')}</tbody><tfoot>${tr('Cả công ty',tot,'td')}</tfoot></table></div>`;
+  const tr=(n,v,tag)=>`<tr><${tag} class="l">${esc(n)}</${tag}>`+[v[0],v[1],v[2],v[1]+v[2],v[3],v[4],v[5],v[6],v[7],v[8]].map(x=>`<${tag}>${x}</${tag}>`).join('')+'</tr>';
+  return `<div class="wrap"><table class="sum" style="min-width:900px"><thead><tr><th class="l">Tổ</th><th>Tổng nhân sự</th><th>Làm (Chính thức)</th><th>Làm (Thời vụ)</th><th>Tổng Làm</th><th>Phép</th><th>K.phép</th><th>Chưa chấm</th><th>Đội Khoán (người)</th><th>Lượt tăng ca</th><th>Người hỗ trợ đến</th></tr></thead><tbody>${rows.map(([n,v])=>tr(n,v,'td')).join('')}</tbody><tfoot>${tr('Cả công ty',tot,'td')}</tfoot></table></div>`;
 }
 
 function render(){
@@ -415,16 +445,95 @@ function render(){
   $('#lo').hidden=adm&&!S.auth.admin;$('#warn').hidden=!(adm&&!S.auth.admin);
   $('#who-t').textContent=adm?'👤 Quản trị':'👤 Tổ: '+(S.teams.find(t=>t.id==role)||{}).name;
   if(adm)$('#pins').innerHTML=S.teams.map(t=>`<div class="row"><span class="pn">${esc(t.name)}</span><span class="pst">${S.auth.teams[t.id]?'✔ đã đặt mã':'⚠ chưa có mã (tổ chưa đăng nhập được)'}</span><button data-pin="${esc(t.id)}">🔑 Đặt / đổi mã</button></div>`).join('');
-  $('#tabs').innerHTML=S.teams.map(t=>`<button class="tab ${tab==t.id?'on':''}" data-tab="${t.id}">${esc(t.name)}${lockedNow(t.id)?' 🔒':''}${S.done[date]&&S.done[date][t.id]?' ✔':''}</button>`).join('')+`<button class="tab ${tab=='sum'?'on':''}" data-tab="sum">Tổng hợp công ty</button>`;
+  $('#tabs').innerHTML=S.teams.map(t=>`<button class="tab ${tab==t.id?'on':''}" data-tab="${t.id}">${esc(t.name)}${lockedNow(t.id)?' 🔒':''}${S.done[date]&&S.done[date][t.id]?' ✔':''}</button>`).join('')+`<button class="tab ${tab=='sum'?'on':''}" data-tab="sum">Tổng hợp công ty</button><button class="tab ${tab=='dash'?'on':''}" data-tab="dash">📊 Biểu đồ & xếp hạng</button>`;
   $('#dt').value=date;
   $('#wd').textContent=new Date(date+'T00:00:00').toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
   $('[data-do=edit]').textContent=edit?'✔ Xong sửa':'✎ Sửa danh sách';
   const old=$('#main .wrap'),sx=old?old.scrollLeft:0,sy=old?old.scrollTop:0;
-  const tb=edit?`<div class="bar">${tab!='sum'?'<button data-act="rnt">✎ Đổi tên tổ</button><button data-act="delt">🗑 Xoá tổ này</button>':''}<button class="pr" data-act="addt">＋ Thêm tổ mới</button></div>`:'';
-  const curT=tab!='sum'?S.teams.find(x=>x.id==tab):null,lkd=!!curT&&lockedNow(curT.id);
-  $('#main').innerHTML=tb+(curT?`<div class="tname">🏷 Tổ: ${esc(curT.name)}</div>`+frameBarHTML(curT)+doneBarHTML(curT)+lockBarHTML(curT):'')+(tab=='sum'||!S.teams.length?sumHTML():(x=>tsum(x)+quickHTML(x)+teamHTML(x)+doneBarHTML(x))(S.teams.find(x=>x.id==tab)||S.teams[0]));
+  const tb=edit?`<div class="bar">${tab!='sum'&&tab!='dash'?'<button data-act="rnt">✎ Đổi tên tổ</button><button data-act="delt">🗑 Xoá tổ này</button>':''}<button class="pr" data-act="addt">＋ Thêm tổ mới</button></div>`:'';
+  const curT=tab!='sum'&&tab!='dash'?S.teams.find(x=>x.id==tab):null,lkd=!!curT&&lockedNow(curT.id);
+  $('#main').innerHTML=tb+(curT?`<div class="tname">🏷 Tổ: ${esc(curT.name)}</div>`+frameBarHTML(curT)+doneBarHTML(curT)+lockBarHTML(curT):'')+(tab=='dash'?dashHTML():tab=='sum'||!S.teams.length?sumHTML():(x=>tsum(x)+quickHTML(x)+teamHTML(x)+doneBarHTML(x))(S.teams.find(x=>x.id==tab)||S.teams[0]));
   if(lkd){$('#main').querySelectorAll('input').forEach(i=>i.disabled=true);if(!adm)$('#main').querySelectorAll('button[data-act]').forEach(i=>i.disabled=true)}
   const nw=$('#main .wrap');if(nw&&tab!='sum'){nw.scrollLeft=sx;nw.scrollTop=sy}
+}
+
+
+/* ===== Biểu đồ & xếp hạng (quản trị) ===== */
+let dRange='14';
+const addD=(d,n)=>{const[y,m,x]=d.split('-').map(Number);return iso(new Date(y,m-1,x+n))};
+const f1=x=>(Math.round(x*10)/10).toString().replace('.',',');
+const dl=(a,b)=>{const r=[];for(let d=a;d<=b;d=addD(d,1))r.push(d);return r};
+function dRangeDays(){
+  const e=date;let s,ps,pe;
+  if(dRange=='m'){const[y,m]=e.split('-').map(Number);s=iso(new Date(y,m-1,1));ps=iso(new Date(y,m-2,1));const c=dl(s,e);return{cur:c,prev:dl(ps,addD(ps,c.length-1)).filter(d=>d<s)}}
+  const n=+dRange;s=addD(e,-(n-1));pe=addD(s,-1);ps=addD(pe,-(n-1));return{cur:dl(s,e),prev:dl(ps,pe)};
+}
+function tDay(t,d){
+  let n=0,L=0,P=0,K=0,U=0;
+  t.groups.forEach(g=>{if(g.k)return;g.w.forEach(w=>{n++;const r=A(w.id,d);[r.s,r.c].forEach(x=>{if(x=='L')L+=.5;else if(x=='P')P+=.5;else if(x=='K')K+=.5;else U+=.5})})});
+  return{n,L,P,K,U,m:L+P+K>0};
+}
+function agg(ts,days){
+  const o={n:0,L:0,P:0,K:0,U:0,per:[]};
+  days.forEach(d=>{let a={n:0,L:0,P:0,K:0,U:0};ts.forEach(t=>{const x=tDay(t,d);if(!x.m)return;['n','L','P','K','U'].forEach(k=>a[k]+=x[k])});
+    const m=a.L+a.P+a.K;o.per.push(m?a.L/m*100:null);if(m){['L','P','K','U'].forEach(k=>o[k]+=a[k])}});
+  o.n=ts.reduce((q,t)=>q+tDay(t,date).n,0);
+  const m=o.L+o.P+o.K;o.pl=m?o.L/m*100:null;o.pp=m?o.P/m*100:null;o.pk=m?o.K/m*100:null;return o;
+}
+const heat=v=>v==null?'':`background:color-mix(in srgb,var(${v>=95?'--cl':v>=90?'--cp':'--ck'}) 32%,var(--card))`;
+const verdict=v=>v==null?['—','var(--mu)']:v>=95?['Tốt','var(--cl)']:v>=90?['Khá','var(--cp)']:['Cần chú ý','var(--ck)'];
+const dlt=(a,b)=>a==null||b==null?null:a-b;
+const dtxt=x=>x==null?'—':`<b style="color:${x>=0.05?'var(--cl)':x<=-0.05?'var(--ck)':'var(--mu)'}">${x>=0.05?'▲ +':x<=-0.05?'▼ ':'= '}${f1(x)} đ</b>`;
+function spark(a){
+  const v=a.filter(x=>x!=null);if(v.length<2)return '';
+  const lo=Math.min(...v),hi=Math.max(...v),W=90,H=24,sp=Math.max(hi-lo,1);
+  const pts=a.map((x,i)=>x==null?null:[(i/(a.length-1||1))*W,H-2-((x-lo)/sp)*(H-4)]).filter(Boolean);
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><polyline fill="none" stroke="var(--pr)" stroke-width="2" points="${pts.map(q=>q.join(',')).join(' ')}"/></svg>`;
+}
+function stackSVG(days){
+  const W=720,H=230,l=34,b=26,tp=10,pw=W-l-6,ph=H-b-tp,nn=S.teams.reduce((q,t)=>q+tDay(t,date).n,0)||1,bw=pw/days.length;
+  let h=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" role="img" aria-label="Nhân sự từng ngày">`;
+  [0,.25,.5,.75,1].forEach(f=>{const y=tp+ph-f*ph;h+=`<line x1="${l}" x2="${W-6}" y1="${y}" y2="${y}" stroke="var(--bd)"/><text x="${l-4}" y="${y+4}" font-size="10" text-anchor="end" fill="var(--mu)">${Math.round(nn*f)}</text>`});
+  days.forEach((d,i)=>{
+    const a={L:0,P:0,K:0,U:0};S.teams.forEach(t=>{const x=tDay(t,d);if(x.m)['L','P','K','U'].forEach(k=>a[k]+=x[k])});
+    let y=tp+ph;const x=l+i*bw+bw*.12,w=bw*.76;
+    [['L','--cl','Làm'],['P','--cp','Phép'],['K','--ck','K.phép'],['U','--bd','Chưa chấm']].forEach(([k,c,nm])=>{const hh=a[k]/nn*ph;y-=hh;h+=`<rect x="${x}" y="${y}" width="${w}" height="${hh}" fill="var(${c})"><title>${d.slice(8)}/${d.slice(5,7)} – ${nm}: ${f1(a[k])}</title></rect>`});
+    if(i%Math.ceil(days.length/14)==0)h+=`<text x="${x+w/2}" y="${H-8}" font-size="10" text-anchor="middle" fill="var(--mu)">${d.slice(8)}/${d.slice(5,7)}</text>`;
+  });
+  return h+'</svg><div class="hint"><span style="color:var(--cl)">■</span> Làm &nbsp;<span style="color:var(--cp)">■</span> Phép &nbsp;<span style="color:var(--ck)">■</span> K.phép &nbsp;<span style="color:var(--mu)">■</span> Chưa chấm (đơn vị: người-công, tổng cột = tổng nhân sự)</div>';
+}
+function dashHTML(){
+  const R=dRangeDays(),days=R.cur.filter(d=>S.teams.some(t=>tDay(t,d).m));
+  const sel=`<div class="bar"><label class="inl">Khoảng xem <select id="drg">${[['7','7 ngày'],['14','14 ngày'],['30','30 ngày'],['m','Tháng của ngày đang chọn']].map(([v,n])=>`<option value="${v}" ${dRange==v?'selected':''}>${n}</option>`).join('')}</select></label><span class="pst">Tính đến ngày ${date.split('-').reverse().join('/')} · so sánh với kỳ liền trước</span></div>`;
+  if(!days.length)return `<div class="dsh">${sel}<p class="hint">Chưa có dữ liệu chấm công trong khoảng này.</p></div>`;
+  const rows=S.teams.map(t=>({t,c:agg([t],R.cur),p:agg([t],R.prev),d:agg([t],[date])})),all={c:agg(S.teams,R.cur),p:agg(S.teams,R.prev),d:agg(S.teams,[date])};
+  const rk=k=>{const m={};rows.filter(x=>x[k].pl!=null).sort((a,b)=>b[k].pl-a[k].pl).forEach((x,i)=>m[x.t.id]=i+1);return m},r1=rk('c'),r0=rk('p');
+  const sorted=[...rows].sort((a,b)=>(b.c.pl??-1)-(a.c.pl??-1));
+  const dd=rows.map(x=>({...x,dl:dlt(x.c.pl,x.p.pl)})).filter(x=>x.dl!=null).sort((a,b)=>b.dl-a.dl);
+  const hk=[...rows].filter(x=>x.c.pk!=null).sort((a,b)=>b.c.pk-a.c.pk)[0];
+  let h=`<div class="dsh">${sel}<div class="kpis">`
+   +`<div class="kpi"><small class="pst">Tổng nhân sự</small><br><b>${all.c.n}</b></div>`
+   +`<div class="kpi"><small class="pst">Làm (kỳ này)</small><br><b style="color:var(--cl)">${all.c.pl==null?'—':f1(all.c.pl)+'%'}</b></div>`
+   +`<div class="kpi"><small class="pst">Phép</small><br><b style="color:var(--cp)">${all.c.pp==null?'—':f1(all.c.pp)+'%'}</b></div>`
+   +`<div class="kpi"><small class="pst">Không phép</small><br><b style="color:var(--ck)">${all.c.pk==null?'—':f1(all.c.pk)+'%'}</b></div>`
+   +`<div class="kpi"><small class="pst">Biến động so kỳ trước</small><br>${dtxt(dlt(all.c.pl,all.p.pl))}</div></div>`;
+  h+=`<div class="hl">`+(dd.length?`<span>📈 Tăng mạnh nhất: <b>${esc(dd[0].t.name)}</b> ${dtxt(dd[0].dl)}</span><span>📉 Giảm mạnh nhất: <b>${esc(dd[dd.length-1].t.name)}</b> ${dtxt(dd[dd.length-1].dl)}</span>`:'')+(hk&&hk.c.pk>0?`<span>⚠ Nghỉ không phép cao nhất: <b>${esc(hk.t.name)}</b> (${f1(hk.c.pk)}%)</span>`:'')+`</div>`;
+  h+=`<h3>🏆 Xếp hạng tổ theo tỷ lệ làm</h3><div class="wrap"><table class="sum"><thead><tr><th>Hạng</th><th class="l">Tổ</th><th>Nhân sự</th><th>Làm %</th><th>Phép %</th><th>K.phép %</th><th>Ngày chọn</th><th>Kỳ trước</th><th>Biến động</th><th>Xu hướng</th><th>Đánh giá</th></tr></thead><tbody>`;
+  sorted.forEach(x=>{
+    const r=r1[x.t.id],q=r0[x.t.id],ch=r&&q?q-r:null,v=verdict(x.c.pl);
+    h+=`<tr><td><b>${r||'—'}</b>${ch?` <small style="display:inline;color:${ch>0?'var(--cl)':'var(--ck)'}">${ch>0?'▲'+ch:'▼'+(-ch)}</small>`:''}</td><td class="l"><b>${esc(x.t.name)}</b></td><td>${x.c.n}</td><td style="${heat(x.c.pl)}"><b>${x.c.pl==null?'—':f1(x.c.pl)}</b></td><td>${x.c.pp==null?'—':f1(x.c.pp)}</td><td>${x.c.pk==null?'—':f1(x.c.pk)}</td><td style="${heat(x.d.pl)}">${x.d.pl==null?'—':f1(x.d.pl)}</td><td>${x.p.pl==null?'—':f1(x.p.pl)}</td><td>${dtxt(dlt(x.c.pl,x.p.pl))}</td><td>${spark(x.c.per)}</td><td><span class="bg" style="background:${v[1]}">${v[0]}</span></td></tr>`;
+  });
+  h+=`</tbody><tfoot><tr><td></td><td class="l">Cả công ty</td><td>${all.c.n}</td><td>${all.c.pl==null?'—':f1(all.c.pl)}</td><td>${all.c.pp==null?'—':f1(all.c.pp)}</td><td>${all.c.pk==null?'—':f1(all.c.pk)}</td><td>${all.d.pl==null?'—':f1(all.d.pl)}</td><td>${all.p.pl==null?'—':f1(all.p.pl)}</td><td>${dtxt(dlt(all.c.pl,all.p.pl))}</td><td>${spark(all.c.per)}</td><td></td></tr></tfoot></table></div><div class="hint">Tỷ lệ tính trên các buổi đã chấm (1 buổi = 0,5 công). Đánh giá: Tốt ≥ 95% · Khá 90–95% · Cần chú ý &lt; 90%. Hạng ▲▼ là thay đổi so với kỳ trước.</div>`;
+  h+=`<h3>👥 Nhân sự từng ngày – toàn công ty</h3>${stackSVG(days)}`;
+  h+=`<h3>🔥 Tỷ lệ làm (%) từng tổ theo ngày</h3><div class="wrap"><table class="hm"><thead><tr><th class="l">Tổ</th>${days.map(d=>`<th>${d.slice(8)}/${d.slice(5,7)}</th>`).join('')}</tr></thead><tbody>`;
+  const hrow=(n,ts,b)=>{const a=agg(ts,days);return `<tr><td class="l">${b?'<b>':''}${esc(n)}${b?'</b>':''}</td>${a.per.map(v=>`<td style="${heat(v)}">${v==null?'·':Math.round(v)}</td>`).join('')}</tr>`};
+  h+=S.teams.map(t=>hrow(t.name,[t])).join('')+hrow('Cả công ty',S.teams,1)+`</tbody></table></div><div class="hint"><span style="color:var(--cl)">■</span> ≥ 95% &nbsp;<span style="color:var(--cp)">■</span> 90–95% &nbsp;<span style="color:var(--ck)">■</span> &lt; 90% · dấu “·” là ngày tổ chưa chấm</div>`;
+  h+=`<h3>📊 Cơ cấu Làm / Phép / Không phép</h3>`;
+  [...sorted,{t:{name:'Cả công ty'},c:all.c}].forEach(x=>{
+    const c=x.c,seg=(v,col)=>v?`<i style="width:${v}%;background:var(${col})">${v>=8?Math.round(v)+'%':''}</i>`:'';
+    h+=`<div class="row"><span class="pn">${esc(x.t.name)}</span><div class="b100" style="flex:1">${c.pl==null?'':seg(c.pl,'--cl')+seg(c.pp,'--cp')+seg(c.pk,'--ck')}</div></div>`;
+  });
+  return h+'</div>';
 }
 
 /* ===== Sự kiện ===== */
@@ -439,6 +548,8 @@ $('#main').addEventListener('change',e=>{
     if(!Object.keys(day).length)delete S.dayset[date];
     save();render();
   }
+  else if(t.id=='drg'){dRange=t.value;render()}
+  else if(d.sn!==undefined){W(d.sn).nm=t.value.trim();save();render()}
   else if(d.k){W(d.id)[d.k]=t.checked?d.v:'';save();render()}
   else if(d.tf){const r=W(d.id);r['f_'+d.tf]=t.checked?1:'';if(!t.checked)r[d.tf]='';save();render()}
   else if(d.f){const r=W(d.id);r[d.f]=t.value.trim();save()}
@@ -489,7 +600,7 @@ $('#file').addEventListener('change',e=>{
 });
 
 /* ===== Chức năng nút ===== */
-const curTeams=()=>(!isAdmin()?[S.teams.find(x=>x.id==role)]:$('#scope').value=='all'||tab=='sum'?S.teams:[S.teams.find(x=>x.id==tab)]).filter(Boolean);
+const curTeams=()=>(!isAdmin()?[S.teams.find(x=>x.id==role)]:$('#scope').value=='all'||tab=='sum'||tab=='dash'?S.teams:[S.teams.find(x=>x.id==tab)]).filter(Boolean);
 function doAct(a){
   if(!isAdmin()&&a!='all'&&a!='logout'&&a!='xd'&&a!='xm'&&a!='done'&&a!='allcur')return;
   if(a=='allcur'){
@@ -601,7 +712,7 @@ function addDay(wb,name,t,d){
   };
   t.groups.forEach(g=>{
     band(ws,r++,N,g.n.toUpperCase());
-    if(g.k){g.k.forEach((n,i)=>{dataRow(r,i+1);ws.getCell(r,2).value=n;ws.getCell(r,3).value=K(n,d);khs+=K(n,d);ws.mergeCells(r,3,r,8);kh.push(r);r++});return}
+    if(g.k){g.k.forEach((n,i)=>{dataRow(r,i+1);ws.getCell(r,2).value=n;ws.getCell(r,3).value=K(n,d);khs+=K(n,d);ws.mergeCells(r,3,r,8);if(KT(n,d))ws.getCell(r,14).value='Tổng số đội: '+KT(n,d);kh.push(r);r++});return}
     g.w.forEach((w,i)=>{
       const a=A(w.id,d);dataRow(r,i+1);rows[w.id]=r;ws.getCell(r,2).value=w.name;
       const put=(c,ok)=>{if(ok){ws.getCell(r,c).value=TICK;cnt[c-3]++}};
@@ -612,8 +723,18 @@ function addDay(wb,name,t,d){
       r++;
     });
   });
-  band(ws,r++,N,'HỖ TRỢ');
-  for(let i=1;i<=3;i++){dataRow(r,i);r++}
+  band(ws,r++,N,'HỖ TRỢ (người tổ khác sang giúp)');
+  const sn=supN(t.id,d);
+  for(let i=1;i<=sn;i++){
+    const a=A(supId(t.id,i),d);dataRow(r,i);
+    if(a.nm)ws.getCell(r,2).value=a.nm;
+    const put=(c,ok)=>{if(ok){ws.getCell(r,c).value=TICK;cnt[c-3]++}};
+    put(3,a.s=='L');put(4,a.s=='P');put(5,a.s=='K');put(6,a.c=='L');put(7,a.c=='P');put(8,a.c=='K');
+    put(9,tk(a,'late'));put(10,tk(a,'out'));put(11,tk(a,'down'));put(12,tk(a,'ot'));
+    if(a.real!==''&&a.real!=null)ws.getCell(r,13).value=String(a.real);
+    if(a.note)ws.getCell(r,14).value=a.note;
+    r++;
+  }
   const last=r-1;
   hdrRow(ws,r,Array(N).fill(''),19);
   ws.getCell(r,1).value='TỔNG CỘNG';ws.mergeCells(r,1,r,2);
