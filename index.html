@@ -119,15 +119,11 @@ td input[type=text]{width:130px}
 <div class="tabs" id="tabs"></div>
 <details id="set">
   <summary>⚙ Xuất Excel &amp; cài đặt</summary>
-  <section class="sec adm-only">
-    <h4>Chấm nhanh</h4>
-    <div class="row">
-      <label class="inl">Áp dụng cho<select id="scope"><option value="cur">Tổ đang xem</option><option value="all">Cả công ty</option></select></label>
-      <button class="pr" data-do="all">✔ Chưa chấm → Làm cả ngày</button>
-    </div>
-  </section>
   <section class="sec">
     <h4>Xuất Excel để in (A4)</h4>
+    <div class="row adm-only">
+      <label class="inl">Xuất cho<select id="scope"><option value="cur">Tổ đang xem</option><option value="all">Cả công ty</option></select></label>
+    </div>
     <div class="row">
       <button data-do="xd">⬇ Xuất Excel ngày này</button>
       <button data-do="xm">⬇ Xuất Excel cả tháng</button>
@@ -324,7 +320,7 @@ function frameBarHTML(t){
    +`<label>Tổng giờ<input class="ro" readonly tabindex="-1" value="${tot?String(tot).replace('.',','):''}"></label></div>`;
 }
 function quickHTML(t){
-  if(lockedNow(t.id))return '';
+  if(isAdmin()||lockedNow(t.id))return '';
   return `<div class="quick"><button class="pr big" data-do="allcur">✔ Chưa chấm → Làm cả ngày</button></div>`;
 }
 function doneBarHTML(t){
