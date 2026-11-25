@@ -67,7 +67,7 @@ body.locked #lock{display:flex}
 .pn{min-width:140px;font-weight:600}.pst{color:var(--mu);font-size:13px}
 .hint{font-size:13px;color:var(--mu);margin:6px 0}
 .wrap{overflow:auto;background:var(--card);border:1px solid var(--bd);border-radius:10px;max-height:74vh}
-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1020px}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:1100px}
 th,td{border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);padding:4px 6px;text-align:center;background:var(--card)}
 td.l,th.l{text-align:left}
 thead th{position:sticky;top:0;z-index:2;background:var(--prl);font-size:12px;height:30px}
@@ -92,6 +92,17 @@ td:has(>input[data-v=L]:checked){background:color-mix(in srgb,var(--cl) 18%,var(
 td:has(>input[data-v=P]:checked){background:color-mix(in srgb,var(--cp) 22%,var(--card))}
 td:has(>input[data-v=K]:checked){background:color-mix(in srgb,var(--ck) 18%,var(--card))}
 input[type=checkbox]:disabled{opacity:.25;cursor:not-allowed}
+input[data-qt]{accent-color:var(--dg)}
+thead th.cq{background:var(--dg);color:#fff}
+td.cq{background:color-mix(in srgb,var(--dg) 14%,var(--card))}
+td.cq:has(>input:checked){background:color-mix(in srgb,var(--dg) 40%,var(--card))}
+thead th.cm{background:#2f6fdc;color:#fff}
+td.cm{background:color-mix(in srgb,#2f6fdc 12%,var(--card))}
+td.cm:has(>input:checked){background:color-mix(in srgb,#2f6fdc 35%,var(--card))}
+input[data-mv]{accent-color:#2f6fdc}
+tr.mvd td.nm{color:var(--mu)}tr.mvd td.nm .qn{text-decoration:line-through}
+tr.quit td.nm{color:var(--mu)}tr.quit td.nm .qn{text-decoration:line-through}
+.supn{display:flex;gap:4px;align-items:center}.supn button{padding:2px 7px}
 td input[type=number],td input[type=text]{width:64px;padding:5px;border:1px solid var(--bd);border-radius:6px;background:var(--bg)}
 td input[type=text]{width:130px}
 td.nm input.sn{width:100%;min-width:170px}
@@ -165,7 +176,7 @@ tr.sup td.nm input.sn::placeholder{color:var(--mu);font-style:italic}
     </div>
   </section>
 </details>
-<p class="hint">Bấm ô để tick, bấm lần nữa để bỏ tick. Đã tick Làm thì Phép / Không phép bị khóa (và ngược lại). Thêm người: bấm “＋ Thêm người” ở cuối mỗi nhóm. Người tổ khác sang giúp: gõ tên vào các dòng trống ở mục “Hỗ trợ” cuối bảng của tổ (lưu theo từng ngày, tự thêm dòng trống khi dùng hết). Cột Đi trễ, Ra ngoài, Xuống ca, Tăng ca chỉ cần tick để ghi nhận. Cột Giờ thực: ghi khung giờ làm ngoài giờ chính thức (tăng ca, đi hỗ trợ tổ khác…), không cần tính ra số giờ. Chấm xong bấm “💾 Lưu – chấm xong”. Dữ liệu tự đồng bộ lên mạng khi có kết nối.</p>
+<p class="hint">Bấm ô để tick, bấm lần nữa để bỏ tick. Đã tick Làm thì Phép / Không phép bị khóa (và ngược lại). Thêm người: bấm “＋ Thêm người” ở cuối mỗi nhóm. Người tổ khác sang giúp: bấm “＋ Thêm người hỗ trợ” ở mục “Hỗ trợ” cuối bảng rồi gõ tên (lưu theo từng ngày, thêm bao nhiêu tuỳ ý, bấm ✕ để bỏ dòng). Cột Đi trễ, Ra ngoài, Xuống ca, Tăng ca chỉ cần tick để ghi nhận. Cột Nghỉ việc: tick là người đó nghỉ việc từ ngày đang xem trở đi, các ô khác tự khóa và giữ nguyên trạng thái này ở mọi ngày sau cho đến khi quản trị xoá tên khỏi danh sách (nếu đi làm lại thì thêm tên mới) hoặc bỏ tick. Cột Chuyển tổ (tổ trưởng tick): chọn tổ mới, người đó được tính cho tổ mới từ ngày đang xem, các ngày trước vẫn ở tổ cũ; bỏ tick ngay trong ngày để hoàn tác. Cột Giờ thực: ghi khung giờ làm ngoài giờ chính thức (tăng ca, đi hỗ trợ tổ khác…), không cần tính ra số giờ. Chấm xong bấm “💾 Lưu – chấm xong”. Dữ liệu tự đồng bộ lên mạng khi có kết nối.</p>
 <div id="main"></div>
 
 <script>
@@ -240,11 +251,33 @@ function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}push()}
 
 /* ===== Dữ liệu chấm công ===== */
 const E={s:'',c:'',late:'',out:'',down:'',ot:'',real:'',note:'',nm:''};
-/* Mục Hỗ trợ: người tổ khác sang giúp – gõ tên theo từng ngày, ở cuối danh sách mỗi tổ (luôn có tối thiểu 3 dòng trống) */
+/* Mục Hỗ trợ: người tổ khác sang giúp – gõ tên theo từng ngày, ở cuối danh sách mỗi tổ (bấm ＋ Thêm người hỗ trợ để thêm dòng, không giới hạn 3 ô) */
 const supId=(tid,i)=>tid+'|HT|'+i;
-const supN=(tid,d=date)=>{let m=0;for(let i=1;i<=60;i++){const r=S.att[d]&&S.att[d][supId(tid,i)];if(r&&String(r.nm||'').trim())m=i}return Math.max(3,m+1)};
+const supN=(tid,d=date)=>{let m=0;for(let i=1;i<=60;i++){const r=S.att[d]&&S.att[d][supId(tid,i)];if(r&&(r.h||String(r.nm||'').trim()))m=i}return m};
 const supNamed=(tid,d=date)=>{let c=0;const n=supN(tid,d);for(let i=1;i<=n;i++)if(String(A(supId(tid,i),d).nm||'').trim())c++;return c};
 const A=(id,d=date)=>(S.att[d]&&S.att[d][id])||E;
+/* Nghỉ việc: lưu w.quit = ngày bắt đầu nghỉ; có hiệu lực mọi ngày từ đó trở đi cho tới khi xoá tên / bỏ tick */
+const isQ=(w,d=date)=>!!w.quit&&d>=w.quit;
+/* Điều chuyển: w.to = ngày rời tổ (ngày đó trở đi không còn ở tổ này); w.from = ngày vào tổ mới */
+const here=(w,d=date)=>(!w.from||d>=w.from)&&(!w.to||d<w.to);
+const fmtQ=x=>x.slice(8)+'/'+x.slice(5,7);
+function transferW(w,t,nt,ng){
+  const nid='n'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),nw={id:nid,name:w.name,note:w.note||'',from:date,mvf:t.name};
+  if(w.quit)nw.quit=w.quit;
+  w.to=date;w.mvt=nt.name;w.mvid=nid;
+  Object.keys(S.att).forEach(d=>{if(d>=date&&S.att[d]&&S.att[d][w.id]){S.att[d][nid]=S.att[d][w.id];delete S.att[d][w.id]}});
+  ng.w.push(nw);
+}
+function undoTransfer(w){
+  const nw=w.mvid&&findW(w.mvid);
+  if(nw&&nw.to){alert('Người này đã được chuyển tiếp sang tổ khác nên không hoàn tác ở đây được.');return false}
+  if(nw){
+    S.teams.forEach(t=>t.groups.forEach(g=>{const i=g.w.indexOf(nw);if(i>=0)g.w.splice(i,1)}));
+    Object.keys(S.att).forEach(d=>{if(d>=w.to&&S.att[d]&&S.att[d][nw.id]){S.att[d][w.id]=S.att[d][nw.id];delete S.att[d][nw.id]}});
+  }
+  delete w.to;delete w.mvt;delete w.mvid;return true;
+}
+const findW=id=>{for(const t of S.teams)for(const g of t.groups)for(const w of g.w)if(w.id===id)return w;return null};
 const W=id=>{S.att[date]=S.att[date]||{};return S.att[date][id]=S.att[date][id]||{...E}};
 const K=(n,d=date)=>+(S.cnt[d]&&S.cnt[d][n])||0;
 const KT=(n,d=date)=>{const k=n+'|tong';if(S.cnt[d]&&S.cnt[d][k]!==undefined)return +S.cnt[d][k]||0;const ks=Object.keys(S.cnt).filter(x=>x<d&&S.cnt[x]&&S.cnt[x][k]!==undefined).sort();return ks.length?(+S.cnt[ks[ks.length-1]][k]||0):0};
@@ -369,68 +402,71 @@ function lockToggle(a){
 
 /* ===== Giao diện ===== */
 function teamHTML(t){
-  const ck=(id,k,v,r)=>{const o=r[k];return `<td><input type="checkbox" data-k="${k}" data-v="${v}" data-id="${esc(id)}" ${o==v?'checked':''} ${o&&o!=v?'disabled':''}></td>`};
-  const tn=(id,f,r)=>`<td><input type="checkbox" data-tf="${f}" data-id="${esc(id)}" ${tk(r,f)?'checked':''}></td>`;
+  const ck=(id,k,v,r,dz)=>{const o=r[k];return `<td><input type="checkbox" data-k="${k}" data-v="${v}" data-id="${esc(id)}" ${o==v?'checked':''} ${(o&&o!=v)||dz?'disabled':''}></td>`};
+  const tn=(id,f,r,dz)=>`<td><input type="checkbox" data-tf="${f}" data-id="${esc(id)}" ${tk(r,f)?'checked':''} ${dz?'disabled':''}></td>`;
+  const mc=(w,mvd)=>{const dz=isQ(w)||(!!w.to&&!mvd);return `<td class="cm"><input type="checkbox" data-mv="1" data-id="${esc(w.id)}" ${mvd?'checked':''} ${dz?'disabled':''} title="Chuyển sang tổ khác"></td>`};
+  const qc=(w,mvd)=>{const q=isQ(w),dz=(q&&w.quit!==date&&!isAdmin())||mvd;return `<td class="cq"><input type="checkbox" data-qt="1" data-id="${esc(w.id)}" ${q?'checked':''} ${dz?'disabled':''} title="${q?'Nghỉ việc từ '+fmtQ(w.quit):'Đánh dấu nghỉ việc'}"></td>`};
   const num=(id,f,r)=>`<td><input type="number" min="0" data-f="${f}" data-id="${esc(id)}" value="${r[f]}"></td>`;
-  let h=`<div class="wrap"><table><thead><tr><th rowspan="2" class="sk1">STT</th><th rowspan="2" class="sk2">Họ và tên</th><th colspan="3">Sáng</th><th colspan="3">Chiều + tối</th><th rowspan="2">Đi trễ</th><th rowspan="2">Ra ngoài</th><th rowspan="2">Xuống ca</th><th rowspan="2">Tăng ca</th><th rowspan="2">Giờ thực</th><th rowspan="2">Ghi chú</th></tr><tr><th class="cl">Làm</th><th class="cp">Phép</th><th class="ck">K.phép</th><th class="cl">Làm</th><th class="cp">Phép</th><th class="ck">K.phép</th></tr></thead><tbody>`;
+  let h=`<div class="wrap"><table><thead><tr><th rowspan="2" class="sk1">STT</th><th rowspan="2" class="sk2">Họ và tên</th><th colspan="3">Sáng</th><th colspan="3">Chiều + tối</th><th rowspan="2">Đi trễ</th><th rowspan="2">Ra ngoài</th><th rowspan="2">Xuống ca</th><th rowspan="2">Tăng ca</th><th rowspan="2" class="cq">Nghỉ việc</th><th rowspan="2" class="cm">Chuyển tổ</th><th rowspan="2">Giờ thực</th><th rowspan="2">Ghi chú</th></tr><tr><th class="cl">Làm</th><th class="cp">Phép</th><th class="ck">K.phép</th><th class="cl">Làm</th><th class="cp">Phép</th><th class="ck">K.phép</th></tr></thead><tbody>`;
   t.groups.forEach((g,gi)=>{
-    h+=`<tr class="gh"><td colspan="14"><div class="sg">${esc(g.n)}${edit?`<button data-act="rng" data-gi="${gi}">✎ Đổi tên</button><button data-act="dlg" data-gi="${gi}">✕ Xoá nhóm</button>`:''}</div></td></tr>`;
+    h+=`<tr class="gh"><td colspan="16"><div class="sg">${esc(g.n)}${edit?`<button data-act="rng" data-gi="${gi}">✎ Đổi tên</button><button data-act="dlg" data-gi="${gi}">✕ Xoá nhóm</button>`:''}</div></td></tr>`;
     if(g.k){
-      g.k.forEach((n,i)=>h+=`<tr><td class="sk1">${i+1}</td><td class="sk2 nm">${esc(n)}${edit?`<button data-act="delk" data-gi="${gi}" data-wi="${i}">✕</button>`:''}</td><td colspan="12" class="l">Số người đi làm: <input type="number" min="0" data-cnt="${esc(n)}" value="${K(n)||''}"> &nbsp;/&nbsp; Tổng số của đội: <input type="number" min="0" data-cnt="${esc(n)}|tong" value="${KT(n)||''}"> người${KT(n)?` &nbsp;<span class="pst">· Vắng ${Math.max(0,KT(n)-K(n))}</span>`:''}</td></tr>`);
-      if(edit)h+=`<tr class="gf"><td colspan="14"><div class="sg"><button data-act="addk" data-gi="${gi}">＋ Thêm dòng khoán</button></div></td></tr>`;
+      g.k.forEach((n,i)=>h+=`<tr><td class="sk1">${i+1}</td><td class="sk2 nm">${esc(n)}${edit?`<button data-act="delk" data-gi="${gi}" data-wi="${i}">✕</button>`:''}</td><td colspan="14" class="l">Số người đi làm: <input type="number" min="0" data-cnt="${esc(n)}" value="${K(n)||''}"> &nbsp;/&nbsp; Tổng số của đội: <input type="number" min="0" data-cnt="${esc(n)}|tong" value="${KT(n)||''}"> người${KT(n)?` &nbsp;<span class="pst">· Vắng ${Math.max(0,KT(n)-K(n))}</span>`:''}</td></tr>`);
+      if(edit)h+=`<tr class="gf"><td colspan="16"><div class="sg"><button data-act="addk" data-gi="${gi}">＋ Thêm dòng khoán</button></div></td></tr>`;
       return;
     }
-    let c=0;
+    let c=0,nn=0;
     g.w.forEach((w,i)=>{
-      const r=A(w.id);if(st(r)=='L')c++;
-      h+=`<tr><td class="sk1">${i+1}</td><td class="sk2 nm">${esc(w.name)}${w.note?`<small>${esc(w.note)}</small>`:''}${edit?`<button data-act="ren" data-gi="${gi}" data-wi="${i}">✎</button><button data-act="del" data-gi="${gi}" data-wi="${i}">✕</button>`:''}</td>`
-        +ck(w.id,'s','L',r)+ck(w.id,'s','P',r)+ck(w.id,'s','K',r)+ck(w.id,'c','L',r)+ck(w.id,'c','P',r)+ck(w.id,'c','K',r)
-        +tn(w.id,'late',r)+tn(w.id,'out',r)+tn(w.id,'down',r)+tn(w.id,'ot',r)
-        +`<td><input type="text" data-f="real" data-id="${esc(w.id)}" value="${esc(r.real)}"></td>`
-        +`<td><input type="text" data-f="note" data-id="${esc(w.id)}" value="${esc(r.note)}"></td></tr>`;
+      const mvd=!!w.to&&!!w.mvt&&w.to===date;if(!here(w)&&!mvd)return;nn++;
+      const q=isQ(w),dz=q||mvd,r0=A(w.id),r=dz?E:r0;if(st(r)=='L')c++;
+      h+=`<tr class="${q?'quit ':''}${mvd?'mvd':''}"><td class="sk1">${nn}</td><td class="sk2 nm"><span${q||mvd?' class="qn"':''}>${esc(w.name)}</span>${w.note?`<small>${esc(w.note)}</small>`:''}${q?`<small style="color:var(--dg)">Nghỉ việc từ ${fmtQ(w.quit)}</small>`:''}${w.from&&w.mvf?`<small style="color:var(--pr)">Chuyển từ ${esc(w.mvf)} (${fmtQ(w.from)})</small>`:''}${w.to&&w.mvt?`<small style="color:var(--pr)">Chuyển sang ${esc(w.mvt)} từ ${fmtQ(w.to)}${mvd?' – bỏ tick Chuyển tổ để hoàn tác':''}</small>`:''}${edit?`<button data-act="ren" data-gi="${gi}" data-wi="${i}">✎</button><button data-act="mv" data-gi="${gi}" data-wi="${i}" title="Chuyển sang tổ khác">⇄</button><button data-act="del" data-gi="${gi}" data-wi="${i}">✕</button>`:''}</td>`
+        +ck(w.id,'s','L',r,dz)+ck(w.id,'s','P',r,dz)+ck(w.id,'s','K',r,dz)+ck(w.id,'c','L',r,dz)+ck(w.id,'c','P',r,dz)+ck(w.id,'c','K',r,dz)
+        +tn(w.id,'late',r,dz)+tn(w.id,'out',r,dz)+tn(w.id,'down',r,dz)+tn(w.id,'ot',r,dz)+qc(w,mvd)+mc(w,mvd)
+        +`<td><input type="text" data-f="real" data-id="${esc(w.id)}" value="${esc(r0.real)}" ${dz?'disabled':''}></td>`
+        +`<td><input type="text" data-f="note" data-id="${esc(w.id)}" value="${esc(r0.note)}"></td></tr>`;
     });
-    h+=`<tr class="gf"><td colspan="14"><div class="sg"><button data-act="add" data-gi="${gi}">＋ Thêm người</button> &nbsp;Làm: <b>${c}</b>/${g.w.length}</div></td></tr>`;
+    h+=`<tr class="gf"><td colspan="16"><div class="sg"><button data-act="add" data-gi="${gi}">＋ Thêm người</button> &nbsp;Làm: <b>${c}</b>/${g.w.filter(w=>here(w)&&!isQ(w)).length}</div></td></tr>`;
   });
   /* ===== Hỗ trợ: người tổ khác sang giúp ===== */
-  h+=`<tr class="gh"><td colspan="14"><div class="sg">Hỗ trợ <small style="display:inline;font-weight:400">(người tổ khác sang giúp – gõ tên vào dòng trống)</small></div></td></tr>`;
+  h+=`<tr class="gh"><td colspan="16"><div class="sg">Hỗ trợ <small style="display:inline;font-weight:400">(người tổ khác sang giúp – bấm “＋ Thêm người hỗ trợ” rồi gõ tên)</small></div></td></tr>`;
   const sn=supN(t.id);let sc=0;
   for(let i=1;i<=sn;i++){
     const id=supId(t.id,i),r=A(id),nmv=String(r.nm||'').trim();if(nmv&&st(r)=='L')sc++;
-    h+=`<tr class="sup"><td class="sk1">${i}</td><td class="sk2 nm"><input type="text" class="sn" data-sn="${esc(id)}" placeholder="Nhập tên người hỗ trợ…" value="${esc(r.nm||'')}"></td>`
+    h+=`<tr class="sup"><td class="sk1">${i}</td><td class="sk2 nm"><div class="supn"><input type="text" class="sn" data-sn="${esc(id)}" placeholder="Nhập tên người hỗ trợ…" value="${esc(r.nm||'')}"><button data-act="delsup" data-i="${i}" title="Bỏ dòng này">✕</button></div></td>`
       +ck(id,'s','L',r)+ck(id,'s','P',r)+ck(id,'s','K',r)+ck(id,'c','L',r)+ck(id,'c','P',r)+ck(id,'c','K',r)
       +tn(id,'late',r)+tn(id,'out',r)+tn(id,'down',r)+tn(id,'ot',r)
-      +`<td><input type="text" data-f="real" data-id="${esc(id)}" value="${esc(r.real)}"></td>`
+      +`<td class="cq"></td><td class="cm"></td><td><input type="text" data-f="real" data-id="${esc(id)}" value="${esc(r.real)}"></td>`
       +`<td><input type="text" data-f="note" data-id="${esc(id)}" value="${esc(r.note)}" placeholder="Từ tổ nào…"></td></tr>`;
   }
-  h+=`<tr class="gf"><td colspan="14"><div class="sg">Hỗ trợ: <b>${sc}</b> người làm / ${supNamed(t.id)} người có tên</div></td></tr>`;
-  if(edit)h+=`<tr class="gf"><td colspan="14"><div class="sg"><button data-act="addg">＋ Thêm nhóm</button></div></td></tr>`;
+  h+=`<tr class="gf"><td colspan="16"><div class="sg"><button data-act="addsup">＋ Thêm người hỗ trợ</button> &nbsp;Hỗ trợ: <b>${sc}</b> người làm / ${supNamed(t.id)} người có tên</div></td></tr>`;
+  if(edit)h+=`<tr class="gf"><td colspan="16"><div class="sg"><button data-act="addg">＋ Thêm nhóm</button></div></td></tr>`;
   return h+'</tbody></table></div>';
 }
 
 function tsum(t){
-  let tot=0,ct=0,tv=0,lam=0,phep=0,kp=0,chua=0,khoan=0;
+  let tot=0,ct=0,tv=0,lam=0,phep=0,kp=0,chua=0,khoan=0,nq=0;
   t.groups.forEach(g=>{
     if(g.k){g.k.forEach(n=>khoan+=K(n));return}
-    g.w.forEach(w=>{tot++;g.t=='TV'?tv++:ct++;const s=st(A(w.id));if(s=='L')lam++;else if(s=='P')phep++;else if(s=='K')kp++;else chua++});
+    g.w.forEach(w=>{if(!here(w))return;if(isQ(w)){nq++;return}tot++;g.t=='TV'?tv++:ct++;const s=st(A(w.id));if(s=='L')lam++;else if(s=='P')phep++;else if(s=='K')kp++;else chua++});
   });
   return `<div class="tsum"><b>👥 Tổng: ${tot} người</b><span class="sub">(Chính thức ${ct} · Thời vụ ${tv})</span>`
-    +`<span style="color:var(--cl)">✔ Làm ${lam}</span><span style="color:var(--cp)">Phép ${phep}</span><span style="color:var(--ck)">K.phép ${kp}</span><span>Chưa chấm ${chua}</span>`
+    +`<span style="color:var(--cl)">✔ Làm ${lam}</span><span style="color:var(--cp)">Phép ${phep}</span><span style="color:var(--ck)">K.phép ${kp}</span><span>Chưa chấm ${chua}</span>${nq?`<span style="color:var(--dg)">Nghỉ việc ${nq}</span>`:''}`
     +t.groups.filter(g=>g.k).flatMap(g=>g.k).map(n=>`<span>${esc(n)}: <b>${K(n)}</b>${KT(n)?'/'+KT(n):''} người</span>`).join('')+(supNamed(t.id)?`<span>🤝 Hỗ trợ đến ${supNamed(t.id)} người</span>`:'')+`</div>`;
 }
 function sumHTML(){
-  const rows=[],tot=Array(9).fill(0);
+  const rows=[],tot=Array(10).fill(0);
   S.teams.forEach(t=>{
-    const v=Array(9).fill(0);v[8]=supNamed(t.id);
+    const v=Array(10).fill(0);v[8]=supNamed(t.id);
     t.groups.forEach(g=>{
       if(g.k){g.k.forEach(n=>v[6]+=K(n));return}
-      g.w.forEach(w=>{const r=A(w.id),s=st(r);v[0]++;
+      g.w.forEach(w=>{if(!here(w))return;if(isQ(w)){v[9]++;return}const r=A(w.id),s=st(r);v[0]++;
         if(s=='L')v[g.t=='CT'?1:2]++;else if(s=='P')v[3]++;else if(s=='K')v[4]++;else v[5]++;
         v[7]+=tk(r,'ot')});
     });
     v.forEach((x,i)=>tot[i]+=x);rows.push([t.name,v]);
   });
-  const tr=(n,v,tag)=>`<tr><${tag} class="l">${esc(n)}</${tag}>`+[v[0],v[1],v[2],v[1]+v[2],v[3],v[4],v[5],v[6],v[7],v[8]].map(x=>`<${tag}>${x}</${tag}>`).join('')+'</tr>';
-  return `<div class="wrap"><table class="sum" style="min-width:900px"><thead><tr><th class="l">Tổ</th><th>Tổng nhân sự</th><th>Làm (Chính thức)</th><th>Làm (Thời vụ)</th><th>Tổng Làm</th><th>Phép</th><th>K.phép</th><th>Chưa chấm</th><th>Đội Khoán (người)</th><th>Lượt tăng ca</th><th>Người hỗ trợ đến</th></tr></thead><tbody>${rows.map(([n,v])=>tr(n,v,'td')).join('')}</tbody><tfoot>${tr('Cả công ty',tot,'td')}</tfoot></table></div>`;
+  const tr=(n,v,tag)=>`<tr><${tag} class="l">${esc(n)}</${tag}>`+[v[0],v[1],v[2],v[1]+v[2],v[3],v[4],v[5],v[6],v[7],v[8],v[9]].map(x=>`<${tag}>${x}</${tag}>`).join('')+'</tr>';
+  return `<div class="wrap"><table class="sum" style="min-width:900px"><thead><tr><th class="l">Tổ</th><th>Tổng nhân sự</th><th>Làm (Chính thức)</th><th>Làm (Thời vụ)</th><th>Tổng Làm</th><th>Phép</th><th>K.phép</th><th>Chưa chấm</th><th>Đội Khoán (người)</th><th>Lượt tăng ca</th><th>Người hỗ trợ đến</th><th>Nghỉ việc</th></tr></thead><tbody>${rows.map(([n,v])=>tr(n,v,'td')).join('')}</tbody><tfoot>${tr('Cả công ty',tot,'td')}</tfoot></table></div>`;
 }
 
 function render(){
@@ -470,7 +506,7 @@ function dRangeDays(){
 }
 function tDay(t,d){
   let n=0,L=0,P=0,K=0,U=0;
-  t.groups.forEach(g=>{if(g.k)return;g.w.forEach(w=>{n++;const r=A(w.id,d);[r.s,r.c].forEach(x=>{if(x=='L')L+=.5;else if(x=='P')P+=.5;else if(x=='K')K+=.5;else U+=.5})})});
+  t.groups.forEach(g=>{if(g.k)return;g.w.forEach(w=>{if(!here(w,d)||isQ(w,d))return;n++;const r=A(w.id,d);[r.s,r.c].forEach(x=>{if(x=='L')L+=.5;else if(x=='P')P+=.5;else if(x=='K')K+=.5;else U+=.5})})});
   return{n,L,P,K,U,m:L+P+K>0};
 }
 function agg(ts,days){
@@ -550,6 +586,42 @@ $('#main').addEventListener('change',e=>{
   }
   else if(t.id=='drg'){dRange=t.value;render()}
   else if(d.sn!==undefined){W(d.sn).nm=t.value.trim();save();render()}
+  else if(d.qt!==undefined){
+    const w=findW(d.id);if(!w){render();return}
+    const dd=date.split('-').reverse().join('/');
+    if(t.checked){
+      if(!confirm('Cho "'+w.name+'" nghỉ việc từ ngày '+dd+'?\nTừ ngày này trở đi người này giữ trạng thái nghỉ việc (các ô khác bị khóa) cho đến khi quản trị xoá tên hoặc bỏ tick.')){render();return}
+      w.quit=date;
+      const x=S.att[date]&&S.att[date][w.id];
+      if(x)['s','c','late','out','down','ot','f_late','f_out','f_down','f_ot','real'].forEach(k=>x[k]='');
+    }else{
+      if(w.quit!==date){
+        if(!isAdmin())return;
+        if(!confirm('Bỏ trạng thái nghỉ việc (từ '+fmtQ(w.quit)+') của "'+w.name+'" và cho đi làm lại?')){render();return}
+      }
+      delete w.quit;
+    }
+    save();render();
+  }
+  else if(d.mv!==undefined){
+    const w=findW(d.id);if(!w){render();return}
+    const tid=isAdmin()?tab:role,tm=S.teams.find(x=>x.id==tid);if(!tm){render();return}
+    if(t.checked){
+      if(w.to){alert('Người này đã có lịch chuyển tổ từ ngày '+fmtQ(w.to)+'.');render();return}
+      const ts=S.teams.filter(x=>x.id!==tid);if(!ts.length){alert('Chưa có tổ nào khác để chuyển đến.');render();return}
+      const a1=prompt('Chuyển "'+w.name+'" sang tổ nào? Nhập số:\n'+ts.map((x,i)=>(i+1)+' = '+x.name).join('\n'));
+      const nt=a1?ts[+a1-1]:null;
+      if(!nt){if(a1)alert('Số không hợp lệ.');render();return}
+      const g0=tm.groups.find(g=>g.w.includes(w)),gs=nt.groups.filter(x=>!x.k);
+      if(!gs.length){alert('Tổ "'+nt.name+'" chưa có nhóm nhân sự, hãy báo quản trị.');render();return}
+      const ng=gs.find(x=>g0&&x.t==g0.t)||gs[0];
+      if(!confirm('Chuyển "'+w.name+'" sang tổ '+nt.name+' (nhóm '+ng.n+') kể từ ngày '+date.split('-').reverse().join('/')+'?\n• Các ngày trước vẫn tính cho tổ '+tm.name+'.\n• Từ ngày này tính cho tổ '+nt.name+'.\n(Bỏ tick ngay trong ngày để hoàn tác.)')){render();return}
+      transferW(w,tm,nt,ng);
+    }else{
+      if(w.to!==date||!undoTransfer(w)){render();return}
+    }
+    save();render();
+  }
   else if(d.k){W(d.id)[d.k]=t.checked?d.v:'';save();render()}
   else if(d.tf){const r=W(d.id);r['f_'+d.tf]=t.checked?1:'';if(!t.checked)r[d.tf]='';save();render()}
   else if(d.f){const r=W(d.id);r[d.f]=t.value.trim();save()}
@@ -558,9 +630,29 @@ $('#main').addEventListener('change',e=>{
 $('#main').addEventListener('click',e=>{
   const b=e.target.closest('button[data-act]');if(!b)return;
   const t=S.teams.find(x=>x.id==tab),g=t&&t.groups[b.dataset.gi],a=b.dataset.act,wi=b.dataset.wi;
-  if(!isAdmin()&&!(a=='add'&&t&&t.id==role))return;
+  if(!isAdmin()&&!(['add','addsup','delsup'].includes(a)&&t&&t.id==role))return;
   if(!isAdmin()&&lockedNow(role))return;
   if(a=='add'){const n=(prompt('Họ và tên người mới:')||'').trim();if(n)g.w.push({id:'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:n,note:''})}
+  else if(a=='mv'){
+    const w=g.w[wi],ts=S.teams.filter(x=>x!==t);
+    if(w.to){alert('Người này đã được chuyển đi từ ngày '+fmtQ(w.to)+'. Hãy mở ngày hiện tại của tổ mới để chuyển tiếp.');return}
+    if(!ts.length){alert('Chưa có tổ nào khác để chuyển đến.');return}
+    const a1=prompt('Chuyển "'+w.name+'" sang tổ nào? Nhập số:\n'+ts.map((x,i)=>(i+1)+' = '+x.name).join('\n'));if(!a1)return;
+    const nt=ts[+a1-1];if(!nt){alert('Số không hợp lệ.');return}
+    const gs=nt.groups.filter(x=>!x.k);if(!gs.length){alert('Tổ "'+nt.name+'" chưa có nhóm nhân sự. Hãy thêm nhóm trước.');return}
+    let ng=gs[0];
+    if(gs.length>1){const a2=prompt('Vào nhóm nào của tổ "'+nt.name+'"? Nhập số:\n'+gs.map((x,i)=>(i+1)+' = '+x.n).join('\n'));if(!a2)return;ng=gs[+a2-1];if(!ng){alert('Số không hợp lệ.');return}}
+    if(!confirm('Chuyển "'+w.name+'" từ tổ '+t.name+' sang tổ '+nt.name+' (nhóm '+ng.n+') kể từ ngày '+date.split('-').reverse().join('/')+'?\n• Các ngày TRƯỚC đó vẫn tính cho tổ '+t.name+'.\n• Từ ngày này trở đi tính cho tổ '+nt.name+'.'))return;
+    transferW(w,t,nt,ng);tab=nt.id;
+  }
+  else if(a=='addsup'){const n=supN(t.id)+1;if(n>60){alert('Tối đa 60 người hỗ trợ mỗi ngày.');return}W(supId(t.id,n)).h=1}
+  else if(a=='delsup'){
+    const i=+b.dataset.i,r=A(supId(t.id,i));
+    if(String(r.nm||'').trim()&&!confirm('Bỏ dòng hỗ trợ "'+r.nm+'" của ngày này?'))return;
+    const n=supN(t.id),D=S.att[date]||{};
+    for(let k=i;k<n;k++){const nx=D[supId(t.id,k+1)];if(nx)D[supId(t.id,k)]=nx;else delete D[supId(t.id,k)]}
+    delete D[supId(t.id,n)];
+  }
   else if(a=='ren'){const n=(prompt('Sửa họ và tên:',g.w[wi].name)||'').trim();if(n)g.w[wi].name=n}
   else if(a=='del'&&confirm('Xoá "'+g.w[wi].name+'" khỏi danh sách?'))g.w.splice(wi,1);
   else if(a=='rnt'){const n=(prompt('Tên tổ mới:',t.name)||'').trim();if(n)t.name=n}
@@ -605,7 +697,7 @@ function doAct(a){
   if(!isAdmin()&&a!='all'&&a!='logout'&&a!='xd'&&a!='xm'&&a!='done'&&a!='allcur')return;
   if(a=='allcur'){
     const tid=curTid(),t=S.teams.find(x=>x.id==tid);if(!t||lockedNow(tid))return;
-    const todo=[];t.groups.forEach(g=>g.w.forEach(w=>{const r=A(w.id);if(!r.s&&!r.c)todo.push(w.id)}));
+    const todo=[];t.groups.forEach(g=>g.w.forEach(w=>{const r=A(w.id);if(!r.s&&!r.c&&!isQ(w)&&here(w))todo.push(w.id)}));
     if(!todo.length){alert('Tất cả mọi người trong tổ đã được chấm.');return}
     if(!confirm('Đánh dấu "Làm cả ngày" cho '+todo.length+' người chưa chấm của tổ '+t.name+'?'))return;
     todo.forEach(id=>{const x=W(id);x.s='L';x.c='L'});
@@ -631,7 +723,7 @@ function doAct(a){
     S.auth.admin=hp(p);save();render();alert('Đã đặt mã quản trị.');return
   }
   if(a=='all'){
-    curTeams().filter(t=>!lockedNow(t.id)).forEach(t=>t.groups.forEach(g=>g.w.forEach(w=>{const r=A(w.id);if(!r.s&&!r.c){const x=W(w.id);x.s='L';x.c='L'}})));
+    curTeams().filter(t=>!lockedNow(t.id)).forEach(t=>t.groups.forEach(g=>g.w.forEach(w=>{const r=A(w.id);if(!r.s&&!r.c&&!isQ(w)&&here(w)){const x=W(w.id);x.s='L';x.c='L'}})));
     save();render();
   }
   else if(a=='edit'){edit=!edit;render()}
@@ -664,7 +756,7 @@ function restore(){
 function file(txt,name,type){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove();
 }
-const TICK='✓',N=15;
+const TICK='✓',N=16;
 const BD={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}};
 const FL=c=>({type:'pattern',pattern:'solid',fgColor:{argb:'FF'+c}});
 const FT=(sz,b,i)=>({name:'Arial',size:sz,bold:!!b,italic:!!i});
@@ -694,32 +786,33 @@ function sig(ws,r,spans){
 /* Một trang chấm công 1 tổ trong 1 ngày (giống mẫu "Ngày 24") */
 function addDay(wb,name,t,d){
   const ws=wb.addWorksheet(name,{pageSetup:PS(1)});
-  ws.columns=[5,28,6,6,7,6,6,7,8,8,7,7,17,18,13].map(width=>({width}));
+  ws.columns=[5,28,6,6,7,6,6,7,8,8,7,7,8,17,18,13].map(width=>({width}));
   const [y,m,dd]=d.split('-').map(Number),X=DS(d,t.id),tot=autoTot(d,t.id);
   titleRow(ws,1,N,'DANH SÁCH CHẤM CÔNG VÀ TĂNG CA '+teamLab(t),14,1,0,26);
   titleRow(ws,2,N,`Ngày ${dd} tháng ${m} năm ${y}  (${WK(d)})`,12,1,0,22);
   titleRow(ws,3,N,tot?'Tổng giờ làm việc trong ngày: '+String(tot).replace('.',',')+' giờ':'',10,0,1,18);
   hdrRow(ws,4,Array(N).fill(''),34);hdrRow(ws,5,Array(N).fill(''),20);
-  const H={1:'STT',2:'Họ và tên',3:'Buổi sáng'+(X.m?'\n('+hm(X.m)+')':''),6:'Buổi chiều+tối'+(X.e?'\n('+hm(X.e)+')':''),9:'Đi trễ',10:'Ra ngoài',11:'Xuống ca',12:'Tăng ca',13:'Giờ thực',14:'Ghi chú',15:'Ký tên'};
+  const H={1:'STT',2:'Họ và tên',3:'Buổi sáng'+(X.m?'\n('+hm(X.m)+')':''),6:'Buổi chiều+tối'+(X.e?'\n('+hm(X.e)+')':''),9:'Đi trễ',10:'Ra ngoài',11:'Xuống ca',12:'Tăng ca',13:'Nghỉ việc',14:'Giờ thực',15:'Ghi chú',16:'Ký tên'};
   Object.entries(H).forEach(([c,v])=>ws.getCell(4,+c).value=v);
+  {const x=ws.getCell(4,13);x.fill=FL('C0392B');x.font={...FT(10,1),color:{argb:'FFFFFFFF'}}}
   ['Làm','Phép','K.phép','Làm','Phép','K.phép'].forEach((v,i)=>ws.getCell(5,3+i).value=v);
-  [1,2,9,10,11,12,13,14,15].forEach(c=>ws.mergeCells(4,c,5,c));
+  [1,2,9,10,11,12,13,14,15,16].forEach(c=>ws.mergeCells(4,c,5,c));
   ws.mergeCells(4,3,4,5);ws.mergeCells(4,6,4,8);
-  const rows={},kh=[],cnt=Array(10).fill(0);let r=6,khs=0;
+  const rows={},kh=[],cnt=Array(11).fill(0);let r=6,khs=0;
   const dataRow=(r,i)=>{
-    for(let c=1;c<=N;c++){const x=ws.getCell(r,c);x.border=BD;x.font=c>=3&&c<=12?FT(12,1):FT(10);x.alignment=c==2?LEF:CEN}
-    ws.getCell(r,1).value=i;ws.getRow(r).height=19;
+    for(let c=1;c<=N;c++){const x=ws.getCell(r,c);x.border=BD;x.font=c>=3&&c<=13?FT(12,1):FT(10);x.alignment=c==2?LEF:CEN}
+    ws.getCell(r,1).value=i;ws.getRow(r).height=19;ws.getCell(r,13).fill=FL('FDE0DC');
   };
   t.groups.forEach(g=>{
     band(ws,r++,N,g.n.toUpperCase());
-    if(g.k){g.k.forEach((n,i)=>{dataRow(r,i+1);ws.getCell(r,2).value=n;ws.getCell(r,3).value=K(n,d);khs+=K(n,d);ws.mergeCells(r,3,r,8);if(KT(n,d))ws.getCell(r,14).value='Tổng số đội: '+KT(n,d);kh.push(r);r++});return}
-    g.w.forEach((w,i)=>{
-      const a=A(w.id,d);dataRow(r,i+1);rows[w.id]=r;ws.getCell(r,2).value=w.name;
+    if(g.k){g.k.forEach((n,i)=>{dataRow(r,i+1);ws.getCell(r,2).value=n;ws.getCell(r,3).value=K(n,d);khs+=K(n,d);ws.mergeCells(r,3,r,8);if(KT(n,d))ws.getCell(r,15).value='Tổng số đội: '+KT(n,d);kh.push(r);r++});return}
+    g.w.filter(w=>here(w,d)).forEach((w,i)=>{
+      const a0=A(w.id,d),qd=isQ(w,d),a=qd?{...E,note:a0.note}:a0;dataRow(r,i+1);rows[w.id]=r;ws.getCell(r,2).value=w.name;
       const put=(c,ok)=>{if(ok){ws.getCell(r,c).value=TICK;cnt[c-3]++}};
       put(3,a.s=='L');put(4,a.s=='P');put(5,a.s=='K');put(6,a.c=='L');put(7,a.c=='P');put(8,a.c=='K');
-      put(9,tk(a,'late'));put(10,tk(a,'out'));put(11,tk(a,'down'));put(12,tk(a,'ot'));
-      if(a.real!==''&&a.real!=null)ws.getCell(r,13).value=String(a.real);
-      if(a.note)ws.getCell(r,14).value=a.note;
+      put(9,tk(a,'late'));put(10,tk(a,'out'));put(11,tk(a,'down'));put(12,tk(a,'ot'));put(13,qd);
+      if(a.real!==''&&a.real!=null)ws.getCell(r,14).value=String(a.real);
+      if(a.note)ws.getCell(r,15).value=a.note;
       r++;
     });
   });
@@ -731,44 +824,44 @@ function addDay(wb,name,t,d){
     const put=(c,ok)=>{if(ok){ws.getCell(r,c).value=TICK;cnt[c-3]++}};
     put(3,a.s=='L');put(4,a.s=='P');put(5,a.s=='K');put(6,a.c=='L');put(7,a.c=='P');put(8,a.c=='K');
     put(9,tk(a,'late'));put(10,tk(a,'out'));put(11,tk(a,'down'));put(12,tk(a,'ot'));
-    if(a.real!==''&&a.real!=null)ws.getCell(r,13).value=String(a.real);
-    if(a.note)ws.getCell(r,14).value=a.note;
+    if(a.real!==''&&a.real!=null)ws.getCell(r,14).value=String(a.real);
+    if(a.note)ws.getCell(r,15).value=a.note;
     r++;
   }
   const last=r-1;
   hdrRow(ws,r,Array(N).fill(''),19);
   ws.getCell(r,1).value='TỔNG CỘNG';ws.mergeCells(r,1,r,2);
-  for(let c=3;c<=12;c++)ws.getCell(r,c).value={formula:`COUNTIF(${cl(c)}6:${cl(c)}${last},"${TICK}")`,result:cnt[c-3]};
-  sig(ws,r+2,[[1,3],[7,9],[13,15]]);
-  ws.pageSetup.printArea='A1:O'+(r+4);
+  for(let c=3;c<=13;c++)ws.getCell(r,c).value={formula:`COUNTIF(${cl(c)}6:${cl(c)}${last},"${TICK}")`,result:cnt[c-3]};
+  sig(ws,r+2,[[1,3],[7,9],[14,16]]);
+  ws.pageSetup.printArea='A1:P'+(r+4);
   return{name,rows,kh,tot:r,cnt,khs};
 }
 
 /* Bảng tổng: mọi số liệu là công thức trỏ tới các bảng ngày */
 function addSummary(ws,teams,days,R){
-  const NS=13,[y,m]=days[0].split('-');
-  ws.columns=[5,28,9,9,9,9,9,9,9,9,9,9,14].map(width=>({width}));
+  const NS=14,[y,m]=days[0].split('-');
+  ws.columns=[5,28,9,9,9,9,9,9,9,9,9,9,9,14].map(width=>({width}));
   titleRow(ws,1,NS,'BẢNG TỔNG HỢP CHẤM CÔNG THÁNG '+m+'/'+y+(teams.length==1?' – '+teamLab(teams[0]):' – CÔNG TY COMEHOME'),14,1,0,26);
   titleRow(ws,2,NS,'Số liệu lấy tự động từ các bảng chấm công từng ngày (liên kết bằng công thức)',10,0,1,18);
   band(ws,3,NS,'I. TỔNG HỢP THEO NGÀY','D9E1F2');
-  hdrRow(ws,4,['STT','Ngày / Tổ','Sáng: Làm','Sáng: Phép','Sáng: K.phép','Chiều: Làm','Chiều: Phép','Chiều: K.phép','Đi trễ','Ra ngoài','Xuống ca','Tăng ca','Đội Khoán (người)'],34);
-  let r=5,i=0;const first=r,T=Array(11).fill(0);
+  hdrRow(ws,4,['STT','Ngày / Tổ','Sáng: Làm','Sáng: Phép','Sáng: K.phép','Chiều: Làm','Chiều: Phép','Chiều: K.phép','Đi trễ','Ra ngoài','Xuống ca','Tăng ca','Nghỉ việc','Đội Khoán (người)'],34);
+  let r=5,i=0;const first=r,T=Array(12).fill(0);
   const body=(r,c,v,al)=>{const x=ws.getCell(r,c);x.border=BD;x.font=FT(10);x.alignment=al||CEN;if(v!==undefined)x.value=v;return x};
   teams.forEach(t=>days.forEach(d=>{
     const I=R[t.id+'|'+d],q=qn(I.name);i++;
     body(r,1,i);
     const lb=(teams.length>1?t.name+' – ':'')+'Ngày '+(+d.slice(8))+' ('+WK(d)+')';
     body(r,2,{text:lb,hyperlink:'#'+q+'!A1'},LEF);
-    for(let c=3;c<=12;c++){body(r,c,{formula:`${q}!${cl(c)}${I.tot}`,result:I.cnt[c-3]});T[c-3]+=I.cnt[c-3]}
-    body(r,13,I.kh.length?{formula:I.kh.map(x=>`${q}!C${x}`).join('+'),result:I.khs}:0);T[10]+=I.khs;
+    for(let c=3;c<=13;c++){body(r,c,{formula:`${q}!${cl(c)}${I.tot}`,result:I.cnt[c-3]});T[c-3]+=I.cnt[c-3]}
+    body(r,14,I.kh.length?{formula:I.kh.map(x=>`${q}!C${x}`).join('+'),result:I.khs}:0);T[11]+=I.khs;
     ws.getRow(r).height=19;r++;
   }));
   hdrRow(ws,r,Array(NS).fill(''),19);ws.getCell(r,1).value='TỔNG CỘNG';ws.mergeCells(r,1,r,2);
-  for(let c=3;c<=13;c++)ws.getCell(r,c).value={formula:`SUM(${cl(c)}${first}:${cl(c)}${r-1})`,result:rd(T[c-3])};
+  for(let c=3;c<=14;c++)ws.getCell(r,c).value={formula:`SUM(${cl(c)}${first}:${cl(c)}${r-1})`,result:rd(T[c-3])};
   r+=2;
   band(ws,r++,NS,'II. TỔNG HỢP THEO TỪNG NGƯỜI (đơn vị: ngày công; 1 buổi = 0,5 ngày)','D9E1F2');
   hdrRow(ws,r,['STT','Họ và tên','Ngày làm','Ngày phép','Ngày K.phép','Đi trễ (lần)','Ra ngoài (lần)','Xuống ca (lần)','Tăng ca (lần)','Giờ thực ngoài khung chính thức (ngày: khung giờ)'],34);
-  for(let c=11;c<=13;c++){const x=ws.getCell(r,c);x.border=BD;x.fill=FL('D9E1F2')}ws.mergeCells(r,10,r,13);r++;
+  for(let c=11;c<=14;c++){const x=ws.getCell(r,c);x.border=BD;x.fill=FL('D9E1F2')}ws.mergeCells(r,10,r,14);r++;
   const first2=r,T2=Array(7).fill(0),Q=`="${TICK}"`;
   teams.forEach(t=>{
     const I=R[t.id+'|'+days[0]],refs=days.map(d=>qn(R[t.id+'|'+d].name));
@@ -776,24 +869,26 @@ function addSummary(ws,teams,days,R){
     t.groups.forEach(g=>{
       if(g.k)return;
       band(ws,r++,NS,g.n.toUpperCase());
-      g.w.forEach((w,k)=>{
-        const rr=I.rows[w.id],res=[0,0,0,0,0,0,0],ex=[];
+      g.w.filter(w=>days.some(d=>R[t.id+'|'+d].rows[w.id])).forEach((w,k)=>{
+        const ref=days.map(d=>{const J=R[t.id+'|'+d];return J.rows[w.id]?[qn(J.name),J.rows[w.id]]:null}).filter(Boolean),res=[0,0,0,0,0,0,0],ex=[];
         days.forEach(d=>{const a=A(w.id,d);res[0]+=((a.s=='L')+(a.c=='L'))/2;res[1]+=((a.s=='P')+(a.c=='P'))/2;res[2]+=((a.s=='K')+(a.c=='K'))/2;
           res[3]+=tk(a,'late');res[4]+=tk(a,'out');res[5]+=tk(a,'down');res[6]+=tk(a,'ot');if(a.real!==''&&a.real!=null)ex.push((+d.slice(8))+'/'+(+d.slice(5,7))+': '+a.real)});
-        const two=(c1,c2)=>'('+refs.map(q=>`(${q}!${c1}${rr}${Q})+(${q}!${c2}${rr}${Q})`).join('+')+')/2';
-        const one=c=>refs.map(q=>`(${q}!${c}${rr}${Q})`).join('+');
+        if(w.quit&&days.some(d=>d>=w.quit))ex.unshift('Nghỉ việc từ '+fmtQ(w.quit));
+        if(w.to&&w.mvt)ex.unshift('Chuyển sang '+w.mvt+' từ '+fmtQ(w.to));if(w.from&&w.mvf)ex.unshift('Chuyển từ '+w.mvf+' ngày '+fmtQ(w.from));
+        const two=(c1,c2)=>'('+ref.map(([q,rr])=>`(${q}!${c1}${rr}${Q})+(${q}!${c2}${rr}${Q})`).join('+')+')/2';
+        const one=c=>ref.map(([q,rr])=>`(${q}!${c}${rr}${Q})`).join('+');
         const F=[two('C','F'),two('D','G'),two('E','H'),one('I'),one('J'),one('K'),one('L')];
         body(r,1,k+1);body(r,2,w.name,LEF);
         F.forEach((f,c)=>{body(r,3+c,{formula:f,result:rd(res[c])});T2[c]+=res[c]});
-        const txt=ex.join('; ');body(r,10,txt,LEF);for(let c=11;c<=13;c++)body(r,c);ws.mergeCells(r,10,r,13);
+        const txt=ex.join('; ');body(r,10,txt,LEF);for(let c=11;c<=14;c++)body(r,c);ws.mergeCells(r,10,r,14);
         ws.getRow(r).height=Math.max(19,Math.ceil(txt.length/50)*15);r++;
       });
     });
   });
   hdrRow(ws,r,Array(NS).fill(''),19);ws.getCell(r,1).value='TỔNG CỘNG';ws.mergeCells(r,1,r,2);
   for(let c=3;c<=9;c++)ws.getCell(r,c).value={formula:`SUM(${cl(c)}${first2}:${cl(c)}${r-1})`,result:rd(T2[c-3])};
-  sig(ws,r+2,[[1,3],[5,8],[10,13]]);
-  ws.pageSetup.printArea='A1:M'+(r+4);
+  sig(ws,r+2,[[1,3],[5,8],[10,14]]);
+  ws.pageSetup.printArea='A1:N'+(r+4);
 }
 
 async function exportXL(month){
