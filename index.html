@@ -756,7 +756,7 @@ function restore(){
 function file(txt,name,type){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove();
 }
-const TICK='✓',N=16;
+const TICK='✓',N=17;
 const BD={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}};
 const FL=c=>({type:'pattern',pattern:'solid',fgColor:{argb:'FF'+c}});
 const FT=(sz,b,i)=>({name:'Arial',size:sz,bold:!!b,italic:!!i});
@@ -786,33 +786,34 @@ function sig(ws,r,spans){
 /* Một trang chấm công 1 tổ trong 1 ngày (giống mẫu "Ngày 24") */
 function addDay(wb,name,t,d){
   const ws=wb.addWorksheet(name,{pageSetup:PS(1)});
-  ws.columns=[5,28,6,6,7,6,6,7,8,8,7,7,8,17,18,13].map(width=>({width}));
+  ws.columns=[5,28,6,6,7,6,6,7,8,8,7,7,8,8,17,18,13].map(width=>({width}));
   const [y,m,dd]=d.split('-').map(Number),X=DS(d,t.id),tot=autoTot(d,t.id);
   titleRow(ws,1,N,'DANH SÁCH CHẤM CÔNG VÀ TĂNG CA '+teamLab(t),14,1,0,26);
   titleRow(ws,2,N,`Ngày ${dd} tháng ${m} năm ${y}  (${WK(d)})`,12,1,0,22);
   titleRow(ws,3,N,tot?'Tổng giờ làm việc trong ngày: '+String(tot).replace('.',',')+' giờ':'',10,0,1,18);
   hdrRow(ws,4,Array(N).fill(''),34);hdrRow(ws,5,Array(N).fill(''),20);
-  const H={1:'STT',2:'Họ và tên',3:'Buổi sáng'+(X.m?'\n('+hm(X.m)+')':''),6:'Buổi chiều+tối'+(X.e?'\n('+hm(X.e)+')':''),9:'Đi trễ',10:'Ra ngoài',11:'Xuống ca',12:'Tăng ca',13:'Nghỉ việc',14:'Giờ thực',15:'Ghi chú',16:'Ký tên'};
+  const H={1:'STT',2:'Họ và tên',3:'Buổi sáng'+(X.m?'\n('+hm(X.m)+')':''),6:'Buổi chiều+tối'+(X.e?'\n('+hm(X.e)+')':''),9:'Đi trễ',10:'Ra ngoài',11:'Xuống ca',12:'Tăng ca',13:'Nghỉ việc',14:'Chuyển tổ',15:'Giờ thực',16:'Ghi chú',17:'Ký tên'};
   Object.entries(H).forEach(([c,v])=>ws.getCell(4,+c).value=v);
   {const x=ws.getCell(4,13);x.fill=FL('C0392B');x.font={...FT(10,1),color:{argb:'FFFFFFFF'}}}
+  {const x=ws.getCell(4,14);x.fill=FL('2F6FDC');x.font={...FT(10,1),color:{argb:'FFFFFFFF'}}}
   ['Làm','Phép','K.phép','Làm','Phép','K.phép'].forEach((v,i)=>ws.getCell(5,3+i).value=v);
-  [1,2,9,10,11,12,13,14,15,16].forEach(c=>ws.mergeCells(4,c,5,c));
+  [1,2,9,10,11,12,13,14,15,16,17].forEach(c=>ws.mergeCells(4,c,5,c));
   ws.mergeCells(4,3,4,5);ws.mergeCells(4,6,4,8);
-  const rows={},kh=[],cnt=Array(11).fill(0);let r=6,khs=0;
+  const rows={},kh=[],cnt=Array(12).fill(0);let r=6,khs=0;
   const dataRow=(r,i)=>{
-    for(let c=1;c<=N;c++){const x=ws.getCell(r,c);x.border=BD;x.font=c>=3&&c<=13?FT(12,1):FT(10);x.alignment=c==2?LEF:CEN}
-    ws.getCell(r,1).value=i;ws.getRow(r).height=19;ws.getCell(r,13).fill=FL('FDE0DC');
+    for(let c=1;c<=N;c++){const x=ws.getCell(r,c);x.border=BD;x.font=c>=3&&c<=14?FT(12,1):FT(10);x.alignment=c==2?LEF:CEN}
+    ws.getCell(r,1).value=i;ws.getRow(r).height=19;ws.getCell(r,13).fill=FL('FDE0DC');ws.getCell(r,14).fill=FL('DCE6FA');
   };
   t.groups.forEach(g=>{
     band(ws,r++,N,g.n.toUpperCase());
-    if(g.k){g.k.forEach((n,i)=>{dataRow(r,i+1);ws.getCell(r,2).value=n;ws.getCell(r,3).value=K(n,d);khs+=K(n,d);ws.mergeCells(r,3,r,8);if(KT(n,d))ws.getCell(r,15).value='Tổng số đội: '+KT(n,d);kh.push(r);r++});return}
-    g.w.filter(w=>here(w,d)).forEach((w,i)=>{
-      const a0=A(w.id,d),qd=isQ(w,d),a=qd?{...E,note:a0.note}:a0;dataRow(r,i+1);rows[w.id]=r;ws.getCell(r,2).value=w.name;
+    if(g.k){g.k.forEach((n,i)=>{dataRow(r,i+1);ws.getCell(r,2).value=n;ws.getCell(r,3).value=K(n,d);khs+=K(n,d);ws.mergeCells(r,3,r,8);if(KT(n,d))ws.getCell(r,16).value='Tổng số đội: '+KT(n,d);kh.push(r);r++});return}
+    g.w.filter(w=>here(w,d)||(w.to===d&&w.mvt)).forEach((w,i)=>{
+      const a0=A(w.id,d),mvd=!!w.to&&!!w.mvt&&w.to===d,qd=!mvd&&isQ(w,d),a=(qd||mvd)?{...E,note:a0.note}:a0;dataRow(r,i+1);rows[w.id]=r;ws.getCell(r,2).value=w.name;
       const put=(c,ok)=>{if(ok){ws.getCell(r,c).value=TICK;cnt[c-3]++}};
       put(3,a.s=='L');put(4,a.s=='P');put(5,a.s=='K');put(6,a.c=='L');put(7,a.c=='P');put(8,a.c=='K');
-      put(9,tk(a,'late'));put(10,tk(a,'out'));put(11,tk(a,'down'));put(12,tk(a,'ot'));put(13,qd);
-      if(a.real!==''&&a.real!=null)ws.getCell(r,14).value=String(a.real);
-      if(a.note)ws.getCell(r,15).value=a.note;
+      put(9,tk(a,'late'));put(10,tk(a,'out'));put(11,tk(a,'down'));put(12,tk(a,'ot'));put(13,qd);put(14,mvd);
+      if(a.real!==''&&a.real!=null)ws.getCell(r,15).value=String(a.real);
+      {const nt=a.note||(mvd?'Chuyển sang '+w.mvt:(w.from===d&&w.mvf?'Chuyển từ '+w.mvf:''));if(nt)ws.getCell(r,16).value=nt}
       r++;
     });
   });
@@ -824,44 +825,44 @@ function addDay(wb,name,t,d){
     const put=(c,ok)=>{if(ok){ws.getCell(r,c).value=TICK;cnt[c-3]++}};
     put(3,a.s=='L');put(4,a.s=='P');put(5,a.s=='K');put(6,a.c=='L');put(7,a.c=='P');put(8,a.c=='K');
     put(9,tk(a,'late'));put(10,tk(a,'out'));put(11,tk(a,'down'));put(12,tk(a,'ot'));
-    if(a.real!==''&&a.real!=null)ws.getCell(r,14).value=String(a.real);
-    if(a.note)ws.getCell(r,15).value=a.note;
+    if(a.real!==''&&a.real!=null)ws.getCell(r,15).value=String(a.real);
+    if(a.note)ws.getCell(r,16).value=a.note;
     r++;
   }
   const last=r-1;
   hdrRow(ws,r,Array(N).fill(''),19);
   ws.getCell(r,1).value='TỔNG CỘNG';ws.mergeCells(r,1,r,2);
-  for(let c=3;c<=13;c++)ws.getCell(r,c).value={formula:`COUNTIF(${cl(c)}6:${cl(c)}${last},"${TICK}")`,result:cnt[c-3]};
-  sig(ws,r+2,[[1,3],[7,9],[14,16]]);
-  ws.pageSetup.printArea='A1:P'+(r+4);
+  for(let c=3;c<=14;c++)ws.getCell(r,c).value={formula:`COUNTIF(${cl(c)}6:${cl(c)}${last},"${TICK}")`,result:cnt[c-3]};
+  sig(ws,r+2,[[1,3],[7,9],[15,17]]);
+  ws.pageSetup.printArea='A1:Q'+(r+4);
   return{name,rows,kh,tot:r,cnt,khs};
 }
 
 /* Bảng tổng: mọi số liệu là công thức trỏ tới các bảng ngày */
 function addSummary(ws,teams,days,R){
-  const NS=14,[y,m]=days[0].split('-');
-  ws.columns=[5,28,9,9,9,9,9,9,9,9,9,9,9,14].map(width=>({width}));
+  const NS=15,[y,m]=days[0].split('-');
+  ws.columns=[5,28,9,9,9,9,9,9,9,9,9,9,9,9,14].map(width=>({width}));
   titleRow(ws,1,NS,'BẢNG TỔNG HỢP CHẤM CÔNG THÁNG '+m+'/'+y+(teams.length==1?' – '+teamLab(teams[0]):' – CÔNG TY COMEHOME'),14,1,0,26);
   titleRow(ws,2,NS,'Số liệu lấy tự động từ các bảng chấm công từng ngày (liên kết bằng công thức)',10,0,1,18);
   band(ws,3,NS,'I. TỔNG HỢP THEO NGÀY','D9E1F2');
-  hdrRow(ws,4,['STT','Ngày / Tổ','Sáng: Làm','Sáng: Phép','Sáng: K.phép','Chiều: Làm','Chiều: Phép','Chiều: K.phép','Đi trễ','Ra ngoài','Xuống ca','Tăng ca','Nghỉ việc','Đội Khoán (người)'],34);
-  let r=5,i=0;const first=r,T=Array(12).fill(0);
+  hdrRow(ws,4,['STT','Ngày / Tổ','Sáng: Làm','Sáng: Phép','Sáng: K.phép','Chiều: Làm','Chiều: Phép','Chiều: K.phép','Đi trễ','Ra ngoài','Xuống ca','Tăng ca','Nghỉ việc','Chuyển tổ','Đội Khoán (người)'],34);
+  let r=5,i=0;const first=r,T=Array(13).fill(0);
   const body=(r,c,v,al)=>{const x=ws.getCell(r,c);x.border=BD;x.font=FT(10);x.alignment=al||CEN;if(v!==undefined)x.value=v;return x};
   teams.forEach(t=>days.forEach(d=>{
     const I=R[t.id+'|'+d],q=qn(I.name);i++;
     body(r,1,i);
     const lb=(teams.length>1?t.name+' – ':'')+'Ngày '+(+d.slice(8))+' ('+WK(d)+')';
     body(r,2,{text:lb,hyperlink:'#'+q+'!A1'},LEF);
-    for(let c=3;c<=13;c++){body(r,c,{formula:`${q}!${cl(c)}${I.tot}`,result:I.cnt[c-3]});T[c-3]+=I.cnt[c-3]}
-    body(r,14,I.kh.length?{formula:I.kh.map(x=>`${q}!C${x}`).join('+'),result:I.khs}:0);T[11]+=I.khs;
+    for(let c=3;c<=14;c++){body(r,c,{formula:`${q}!${cl(c)}${I.tot}`,result:I.cnt[c-3]});T[c-3]+=I.cnt[c-3]}
+    body(r,15,I.kh.length?{formula:I.kh.map(x=>`${q}!C${x}`).join('+'),result:I.khs}:0);T[12]+=I.khs;
     ws.getRow(r).height=19;r++;
   }));
   hdrRow(ws,r,Array(NS).fill(''),19);ws.getCell(r,1).value='TỔNG CỘNG';ws.mergeCells(r,1,r,2);
-  for(let c=3;c<=14;c++)ws.getCell(r,c).value={formula:`SUM(${cl(c)}${first}:${cl(c)}${r-1})`,result:rd(T[c-3])};
+  for(let c=3;c<=15;c++)ws.getCell(r,c).value={formula:`SUM(${cl(c)}${first}:${cl(c)}${r-1})`,result:rd(T[c-3])};
   r+=2;
   band(ws,r++,NS,'II. TỔNG HỢP THEO TỪNG NGƯỜI (đơn vị: ngày công; 1 buổi = 0,5 ngày)','D9E1F2');
   hdrRow(ws,r,['STT','Họ và tên','Ngày làm','Ngày phép','Ngày K.phép','Đi trễ (lần)','Ra ngoài (lần)','Xuống ca (lần)','Tăng ca (lần)','Giờ thực ngoài khung chính thức (ngày: khung giờ)'],34);
-  for(let c=11;c<=14;c++){const x=ws.getCell(r,c);x.border=BD;x.fill=FL('D9E1F2')}ws.mergeCells(r,10,r,14);r++;
+  for(let c=11;c<=15;c++){const x=ws.getCell(r,c);x.border=BD;x.fill=FL('D9E1F2')}ws.mergeCells(r,10,r,15);r++;
   const first2=r,T2=Array(7).fill(0),Q=`="${TICK}"`;
   teams.forEach(t=>{
     const I=R[t.id+'|'+days[0]],refs=days.map(d=>qn(R[t.id+'|'+d].name));
@@ -880,15 +881,15 @@ function addSummary(ws,teams,days,R){
         const F=[two('C','F'),two('D','G'),two('E','H'),one('I'),one('J'),one('K'),one('L')];
         body(r,1,k+1);body(r,2,w.name,LEF);
         F.forEach((f,c)=>{body(r,3+c,{formula:f,result:rd(res[c])});T2[c]+=res[c]});
-        const txt=ex.join('; ');body(r,10,txt,LEF);for(let c=11;c<=14;c++)body(r,c);ws.mergeCells(r,10,r,14);
+        const txt=ex.join('; ');body(r,10,txt,LEF);for(let c=11;c<=15;c++)body(r,c);ws.mergeCells(r,10,r,15);
         ws.getRow(r).height=Math.max(19,Math.ceil(txt.length/50)*15);r++;
       });
     });
   });
   hdrRow(ws,r,Array(NS).fill(''),19);ws.getCell(r,1).value='TỔNG CỘNG';ws.mergeCells(r,1,r,2);
   for(let c=3;c<=9;c++)ws.getCell(r,c).value={formula:`SUM(${cl(c)}${first2}:${cl(c)}${r-1})`,result:rd(T2[c-3])};
-  sig(ws,r+2,[[1,3],[5,8],[10,14]]);
-  ws.pageSetup.printArea='A1:N'+(r+4);
+  sig(ws,r+2,[[1,3],[5,8],[10,15]]);
+  ws.pageSetup.printArea='A1:O'+(r+4);
 }
 
 async function exportXL(month){
