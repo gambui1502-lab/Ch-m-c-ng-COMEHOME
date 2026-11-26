@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Điểm danh tổ sản xuất</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js" defer></script>
 <style>
@@ -35,6 +38,7 @@ summary{cursor:pointer;font-weight:600}
 .inl select{padding:7px;border:1px solid var(--bd);border-radius:8px;background:var(--bg)}
 button.dz{color:var(--dg);margin-left:auto}
 [hidden]{display:none!important}
+body.viewer [data-act],body.viewer .quick,body.viewer [data-do=done]{display:none!important}
 #lock{display:none;position:fixed;inset:0;background:var(--bg);align-items:center;justify-content:center;padding:16px;z-index:99}
 body.locked>*:not(#lock){display:none!important}
 body.locked #lock{display:flex}
@@ -128,7 +132,7 @@ tr.sup td.nm input.sn::placeholder{color:var(--mu);font-style:italic}
   <label>Bạn là<select id="lr"></select></label>
   <label>Mã PIN<input id="lp" type="password" inputmode="numeric" autocomplete="off"></label>
   <button class="pr" id="lg">Vào</button><p id="lm" class="hint"></p></div></div>
-<h1>📋 Điểm danh tổ sản xuất – Comehome</h1>
+<h1>📋 Điểm danh tổ sản xuất – Comehome <small style="font-size:11px;font-weight:400;opacity:.7;white-space:nowrap">v26.11.2026 · Quản trị xem</small></h1>
 <div class="who"><b id="who-t"></b>
   <button data-do="logout" id="lo">⎋ Đăng xuất</button>
   <span class="pst" id="net"></span>
@@ -145,7 +149,7 @@ tr.sup td.nm input.sn::placeholder{color:var(--mu);font-style:italic}
   <summary>⚙ Xuất Excel &amp; cài đặt</summary>
   <section class="sec">
     <h4>Xuất Excel để in (A4)</h4>
-    <div class="row adm-only">
+    <div class="row mgr-only">
       <label class="inl">Xuất cho<select id="scope"><option value="cur">Tổ đang xem</option><option value="all">Cả công ty</option></select></label>
     </div>
     <div class="row">
@@ -163,6 +167,7 @@ tr.sup td.nm input.sn::placeholder{color:var(--mu);font-style:italic}
   <section class="sec adm-only">
     <h4>Quyền truy cập (chỉ quản trị thấy)</h4>
     <div class="row"><button data-do="apin">🔑 Đặt / đổi mã quản trị</button></div>
+    <div class="row"><span class="pn">Quản trị xem</span><span class="pst" id="vps"></span><button data-do="vpin">🔑 Đặt / đổi mã (chỉ xem + xuất Excel)</button></div>
     <div id="pins"></div>
   </section>
   <section class="sec adm-only">
@@ -214,6 +219,8 @@ const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+Stri
 const rd=x=>Math.round(x*100)/100;
 let S,tab='ct',date=iso(new Date()),edit=false,role=null;
 const isAdmin=()=>role==='admin';
+const isView=()=>role==='view';
+const isMgr=()=>role==='admin'||role==='view';
 const lockedNow=(tid,d=date)=>!!(S.locks&&S.locks[d]&&S.locks[d][tid]);
 const hp=s=>{let a=0xdeadbeef,b=0x41c6ce57;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=Math.imul(a^c,2654435761);b=Math.imul(b^c,1597334677)}a=Math.imul(a^(a>>>16),2246822507)^Math.imul(b^(b>>>13),3266489909);b=Math.imul(b^(b>>>16),2246822507)^Math.imul(a^(a>>>13),3266489909);return(4294967296*(2097151&b)+(a>>>0)).toString(36)};
 
@@ -233,18 +240,18 @@ function load(){
 }
 function initRole(){
   try{role=sessionStorage.getItem('dd_role')}catch(e){role=null}
-  if(role!=='admin'&&!(role&&S.teams.some(t=>t.id==role)&&S.auth.teams[role]))role=null;
+  if(role!=='admin'&&!(role==='view'&&S.auth.view)&&!(role&&role!=='view'&&S.teams.some(t=>t.id==role)&&S.auth.teams[role]))role=null;
   if(!S.auth.admin&&!role)role='admin';
 }
 function showLock(){
-  $('#lr').innerHTML='<option value="admin">Quản trị (xem tổng hợp)</option>'+S.teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+  $('#lr').innerHTML='<option value="admin">Quản trị (toàn quyền)</option><option value="view">Quản trị xem (chỉ xem, xuất Excel)</option>'+S.teams.map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
   $('#lp').value='';$('#lm').textContent='';
 }
 function tryLogin(){
   if(connecting)return;
-  const r=$('#lr').value,p=$('#lp').value.trim(),want=r=='admin'?S.auth.admin:S.auth.teams[r];
-  if(r!='admin'&&!want){$('#lm').textContent='Tổ này chưa được đặt mã PIN. Hãy liên hệ quản trị.';return}
-  if(r=='admin'&&!want||hp(p)==want){role=r;try{sessionStorage.setItem('dd_role',r)}catch(e){}if(r!='admin')tab=r;seed();render()}
+  const r=$('#lr').value,p=$('#lp').value.trim(),want=r=='admin'?S.auth.admin:r=='view'?S.auth.view:S.auth.teams[r];
+  if(r!='admin'&&!want){$('#lm').textContent=r=='view'?'Tài khoản Quản trị xem chưa được đặt mã. Hãy liên hệ quản trị.':'Tổ này chưa được đặt mã PIN. Hãy liên hệ quản trị.';return}
+  if(r=='admin'&&!want||hp(p)==want){role=r;try{sessionStorage.setItem('dd_role',r)}catch(e){}if(r=='view')tab='sum';else if(r!='admin')tab=r;seed();render()}
   else{$('#lm').textContent='Sai mã PIN.';$('#lp').value=''}
 }
 function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}push()}
@@ -284,7 +291,7 @@ const KT=(n,d=date)=>{const k=n+'|tong';if(S.cnt[d]&&S.cnt[d][k]!==undefined)ret
 const st=r=>r.s=='L'||r.c=='L'?'L':r.s=='P'||r.c=='P'?'P':r.s=='K'||r.c=='K'?'K':'';
 const TR=/(\d{1,2})(?:[:h.](\d{1,2}))?h?\s*[-–]\s*(\d{1,2})(?:[:h.](\d{1,2}))?h?/;
 function hrs(x){const m=TR.exec(x||'');if(!m)return 0;let d=(+m[3]*60+ +(m[4]||0))-(+m[1]*60+ +(m[2]||0));if(d<0)d+=1440;return d/60}
-const curTid=()=>{const t=isAdmin()?tab:role;return t&&t!='sum'&&S.teams.some(x=>x.id==t)?t:null};
+const curTid=()=>{const t=isMgr()?tab:role;return t&&t!='sum'&&S.teams.some(x=>x.id==t)?t:null};
 const DEF_M='7h-11h30',DEF_E='12h30-19h30';
 const DS=(d=date,tid=curTid())=>{
   if(!tid)return{m:'',e:''};
@@ -329,7 +336,7 @@ function applyRemote(v){
   S.dayset={};Object.keys(v.dayset||{}).forEach(d=>{S.dayset[d]={};Object.keys(v.dayset[d]||{}).forEach(k=>{if(v.dayset[d][k]&&typeof v.dayset[d][k]=='object')S.dayset[d][dec(k)]={...v.dayset[d][k]}})});
   S.xt={};Object.keys(v.xt||{}).forEach(k=>S.xt[dec(k)]=v.xt[k]);
   S.set={m:'',e:'',tot:'',...(v.set||S.set),def:{late:0,out:0,down:0,ot:0}};
-  S.auth={admin:(v.auth&&v.auth.admin)||'',teams:(v.auth&&v.auth.teams)||{}};
+  S.auth={admin:(v.auth&&v.auth.admin)||'',view:(v.auth&&v.auth.view)||'',teams:(v.auth&&v.auth.teams)||{}};
   try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}
   prev=flat();
 }
@@ -371,18 +378,18 @@ function frameBarHTML(t){
    +`<label>Tổng giờ<input class="ro" readonly tabindex="-1" value="${tot?String(tot).replace('.',','):''}"></label></div>`;
 }
 function quickHTML(t){
-  if(isAdmin()||lockedNow(t.id))return '';
+  if(isMgr()||lockedNow(t.id))return '';
   return `<div class="quick"><button class="pr big" data-do="allcur">✔ Chưa chấm → Làm cả ngày</button></div>`;
 }
 function doneBarHTML(t){
-  const D=S.done[date]&&S.done[date][t.id],L=lockedNow(t.id),adm=isAdmin();
+  const D=S.done[date]&&S.done[date][t.id],L=lockedNow(t.id),adm=isMgr();
   const st=D?`<span class="okst">✔ Đã lưu – chấm xong lúc ${new Date(D.t).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</span>`:'<span class="pst">Chưa bấm Lưu – chấm xong</span>';
   if(adm)return `<div class="donebar">${st}</div>`;
   return `<div class="act">${L?'':'<button class="pr big" data-do="done">💾 Lưu – chấm xong</button>'}<button class="big" data-do="xd">⬇ Excel ngày</button><button class="big" data-do="xm">⬇ Excel tháng</button></div><div class="donebar">${st}</div>`;
 }
 function lockBarHTML(t){
   const L=S.locks[date]&&S.locks[date][t.id],adm=isAdmin(),dd=date.split('-').reverse().join('/');
-  if(L)return `<div class="lockbar on">🔒 Ngày ${dd} đã chốt công (${esc(L.by)}, ${new Date(L.t).toLocaleString('vi-VN')}). ${adm?'<button data-lk="unlock">🔓 Mở khóa</button>':'Cần sửa thì liên hệ quản trị.'}</div>`;
+  if(L)return `<div class="lockbar on">🔒 Ngày ${dd} đã chốt công (${esc(L.by)}, ${new Date(L.t).toLocaleString('vi-VN')}). ${adm?'<button data-lk="unlock">🔓 Mở khóa</button>':isView()?'':'Cần sửa thì liên hệ quản trị.'}</div>`;
   if(!adm)return '';
   return `<div class="lockbar"><button class="pr" data-lk="lock">🔒 Khóa tổ này ngày ${dd}</button><span class="pst">Khóa xong tổ không sửa được nữa.</span></div>`;
 }
@@ -474,12 +481,16 @@ function render(){
   if(role&&role!=='admin'&&!S.teams.some(t=>t.id==role))role=null;
   document.body.classList.toggle('locked',!role);
   if(!role){showLock();return}
-  const adm=isAdmin();
-  if(!adm){tab=role;edit=false}
-  $('#set').hidden=!adm;$('#tabs').hidden=!adm;
+  const adm=isAdmin(),mgr=isMgr(),vw=isView();
+  if(!mgr){tab=role;edit=false}
+  if(vw)edit=false;
+  document.body.classList.toggle('viewer',vw);
+  $('#set').hidden=!mgr;$('#tabs').hidden=!mgr;
   document.querySelectorAll('.adm-only').forEach(el=>el.hidden=!adm);
+  document.querySelectorAll('.mgr-only').forEach(el=>el.hidden=!mgr);
+  if(adm){const v=$('#vps');if(v)v.textContent=S.auth.view?'✔ đã đặt mã':'⚠ chưa có mã (chưa đăng nhập được)'}
   $('#lo').hidden=adm&&!S.auth.admin;$('#warn').hidden=!(adm&&!S.auth.admin);
-  $('#who-t').textContent=adm?'👤 Quản trị':'👤 Tổ: '+(S.teams.find(t=>t.id==role)||{}).name;
+  $('#who-t').textContent=adm?'👤 Quản trị':vw?'👤 Quản trị xem (chỉ xem)':'👤 Tổ: '+(S.teams.find(t=>t.id==role)||{}).name;
   if(adm)$('#pins').innerHTML=S.teams.map(t=>`<div class="row"><span class="pn">${esc(t.name)}</span><span class="pst">${S.auth.teams[t.id]?'✔ đã đặt mã':'⚠ chưa có mã (tổ chưa đăng nhập được)'}</span><button data-pin="${esc(t.id)}">🔑 Đặt / đổi mã</button></div>`).join('');
   $('#tabs').innerHTML=S.teams.map(t=>`<button class="tab ${tab==t.id?'on':''}" data-tab="${t.id}">${esc(t.name)}${lockedNow(t.id)?' 🔒':''}${S.done[date]&&S.done[date][t.id]?' ✔':''}</button>`).join('')+`<button class="tab ${tab=='sum'?'on':''}" data-tab="sum">Tổng hợp công ty</button><button class="tab ${tab=='dash'?'on':''}" data-tab="dash">📊 Biểu đồ & xếp hạng</button>`;
   $('#dt').value=date;
@@ -489,19 +500,25 @@ function render(){
   const tb=edit?`<div class="bar">${tab!='sum'&&tab!='dash'?'<button data-act="rnt">✎ Đổi tên tổ</button><button data-act="delt">🗑 Xoá tổ này</button>':''}<button class="pr" data-act="addt">＋ Thêm tổ mới</button></div>`:'';
   const curT=tab!='sum'&&tab!='dash'?S.teams.find(x=>x.id==tab):null,lkd=!!curT&&lockedNow(curT.id);
   $('#main').innerHTML=tb+(curT?`<div class="tname">🏷 Tổ: ${esc(curT.name)}</div>`+frameBarHTML(curT)+doneBarHTML(curT)+lockBarHTML(curT):'')+(tab=='dash'?dashHTML():tab=='sum'||!S.teams.length?sumHTML():(x=>tsum(x)+quickHTML(x)+teamHTML(x)+doneBarHTML(x))(S.teams.find(x=>x.id==tab)||S.teams[0]));
+  if(vw){$('#main').querySelectorAll('input:not(#drg):not(#dfrom):not(#dto),select:not(#drg),textarea').forEach(i=>i.disabled=true);$('#main').querySelectorAll('button[data-act]').forEach(i=>i.disabled=true)}
   if(lkd){$('#main').querySelectorAll('input').forEach(i=>i.disabled=true);if(!adm)$('#main').querySelectorAll('button[data-act]').forEach(i=>i.disabled=true)}
   const nw=$('#main .wrap');if(nw&&tab!='sum'){nw.scrollLeft=sx;nw.scrollTop=sy}
 }
 
 
 /* ===== Biểu đồ & xếp hạng (quản trị) ===== */
-let dRange='14';
+let dRange='m',dFrom='',dTo='';
 const addD=(d,n)=>{const[y,m,x]=d.split('-').map(Number);return iso(new Date(y,m-1,x+n))};
 const f1=x=>(Math.round(x*10)/10).toString().replace('.',',');
 const dl=(a,b)=>{const r=[];for(let d=a;d<=b;d=addD(d,1))r.push(d);return r};
 function dRangeDays(){
   const e=date;let s,ps,pe;
   if(dRange=='m'){const[y,m]=e.split('-').map(Number);s=iso(new Date(y,m-1,1));ps=iso(new Date(y,m-2,1));const c=dl(s,e);return{cur:c,prev:dl(ps,addD(ps,c.length-1)).filter(d=>d<s)}}
+  if(dRange=='c'){
+    let a=dFrom||addD(e,-29),b=dTo||e;if(a>b)[a,b]=[b,a];
+    if(dl(a,addD(a,366)).indexOf(b)<0)a=addD(b,-365);
+    const n=dl(a,b).length;pe=addD(a,-1);ps=addD(pe,-(n-1));return{cur:dl(a,b),prev:dl(ps,pe),a,b};
+  }
   const n=+dRange;s=addD(e,-(n-1));pe=addD(s,-1);ps=addD(pe,-(n-1));return{cur:dl(s,e),prev:dl(ps,pe)};
 }
 function tDay(t,d){
@@ -540,7 +557,7 @@ function stackSVG(days){
 }
 function dashHTML(){
   const R=dRangeDays(),days=R.cur.filter(d=>S.teams.some(t=>tDay(t,d).m));
-  const sel=`<div class="bar"><label class="inl">Khoảng xem <select id="drg">${[['7','7 ngày'],['14','14 ngày'],['30','30 ngày'],['m','Tháng của ngày đang chọn']].map(([v,n])=>`<option value="${v}" ${dRange==v?'selected':''}>${n}</option>`).join('')}</select></label><span class="pst">Tính đến ngày ${date.split('-').reverse().join('/')} · so sánh với kỳ liền trước</span></div>`;
+  const sel=`<div class="bar"><label class="inl">Khoảng xem <select id="drg">${[['m','Tháng hiện tại'],['30','30 ngày'],['c','Tùy chọn (chọn từ ngày – đến ngày)']].map(([v,n])=>`<option value="${v}" ${dRange==v?'selected':''}>${n}</option>`).join('')}</select></label>${dRange=='c'?`<label class="inl">Từ <input type="date" id="dfrom" value="${R.a}"></label><label class="inl">Đến <input type="date" id="dto" value="${R.b}"></label>`:''}<span class="pst">${dRange=='c'?'Tối đa 366 ngày · ':'Tính đến ngày '+date.split('-').reverse().join('/')+' · '}so sánh với kỳ liền trước cùng độ dài</span></div>`;
   if(!days.length)return `<div class="dsh">${sel}<p class="hint">Chưa có dữ liệu chấm công trong khoảng này.</p></div>`;
   const rows=S.teams.map(t=>({t,c:agg([t],R.cur),p:agg([t],R.prev),d:agg([t],[date])})),all={c:agg(S.teams,R.cur),p:agg(S.teams,R.prev),d:agg(S.teams,[date])};
   const rk=k=>{const m={};rows.filter(x=>x[k].pl!=null).sort((a,b)=>b[k].pl-a[k].pl).forEach((x,i)=>m[x.t.id]=i+1);return m},r1=rk('c'),r0=rk('p');
@@ -575,7 +592,8 @@ function dashHTML(){
 /* ===== Sự kiện ===== */
 $('#main').addEventListener('change',e=>{
   const t=e.target,d=t.dataset;
-  if(lockedNow(isAdmin()?tab:role)){render();return}
+  if(isView()&&!['drg','dfrom','dto'].includes(t.id)){render();return}
+  if(lockedNow(isMgr()?tab:role)){render();return}
   if(d.fr){
     const tid=curTid();if(!tid)return;
     const day=S.dayset[date]=S.dayset[date]||{},o=day[tid]=day[tid]||{DUMMY:0};delete o.DUMMY;
@@ -584,7 +602,8 @@ $('#main').addEventListener('change',e=>{
     if(!Object.keys(day).length)delete S.dayset[date];
     save();render();
   }
-  else if(t.id=='drg'){dRange=t.value;render()}
+  else if(t.id=='drg'){dRange=t.value;if(dRange=='c'&&!dFrom){dTo=date;dFrom=addD(date,-29)}render()}
+  else if(t.id=='dfrom'||t.id=='dto'){if(t.value){if(t.id=='dfrom')dFrom=t.value;else dTo=t.value;render()}}
   else if(d.sn!==undefined){W(d.sn).nm=t.value.trim();save();render()}
   else if(d.qt!==undefined){
     const w=findW(d.id);if(!w){render();return}
@@ -628,7 +647,7 @@ $('#main').addEventListener('change',e=>{
   else if(d.cnt!==undefined){(S.cnt[date]=S.cnt[date]||{})[d.cnt]=+t.value||0;save();render()}
 });
 $('#main').addEventListener('click',e=>{
-  const b=e.target.closest('button[data-act]');if(!b)return;
+  const b=e.target.closest('button[data-act]');if(!b||isView())return;
   const t=S.teams.find(x=>x.id==tab),g=t&&t.groups[b.dataset.gi],a=b.dataset.act,wi=b.dataset.wi;
   if(!isAdmin()&&!(['add','addsup','delsup'].includes(a)&&t&&t.id==role))return;
   if(!isAdmin()&&lockedNow(role))return;
@@ -667,7 +686,7 @@ $('#main').addEventListener('click',e=>{
 });
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
-  if(b.dataset.tab){if(isAdmin()){tab=b.dataset.tab;render()}}
+  if(b.dataset.tab){if(isMgr()){tab=b.dataset.tab;render()}}
   else if(b.dataset.sh!==undefined){
     if(b.dataset.sh=='0')date=iso(new Date());
     else{const[y,m,d]=date.split('-').map(Number);date=iso(new Date(y,m-1,d+ +b.dataset.sh))}
@@ -692,8 +711,9 @@ $('#file').addEventListener('change',e=>{
 });
 
 /* ===== Chức năng nút ===== */
-const curTeams=()=>(!isAdmin()?[S.teams.find(x=>x.id==role)]:$('#scope').value=='all'||tab=='sum'||tab=='dash'?S.teams:[S.teams.find(x=>x.id==tab)]).filter(Boolean);
+const curTeams=()=>(!isMgr()?[S.teams.find(x=>x.id==role)]:$('#scope').value=='all'||tab=='sum'||tab=='dash'?S.teams:[S.teams.find(x=>x.id==tab)]).filter(Boolean);
 function doAct(a){
+  if(isView()&&!['logout','xd','xm'].includes(a))return;
   if(!isAdmin()&&a!='all'&&a!='logout'&&a!='xd'&&a!='xm'&&a!='done'&&a!='allcur')return;
   if(a=='allcur'){
     const tid=curTid(),t=S.teams.find(x=>x.id==tid);if(!t||lockedNow(tid))return;
@@ -721,6 +741,13 @@ function doAct(a){
     if(p.length<4){alert('Mã quá ngắn.');return}
     if((prompt('Nhập lại mã để xác nhận:')||'').trim()!==p){alert('Hai lần nhập không khớp.');return}
     S.auth.admin=hp(p);save();render();alert('Đã đặt mã quản trị.');return
+  }
+  if(a=='vpin'){
+    const p=prompt('Mã cho tài khoản "Quản trị xem" (chỉ xem + xuất Excel, tối thiểu 4 ký tự).\nĐể trống = xoá mã, tài khoản này sẽ không đăng nhập được:');
+    if(p===null)return;const v=p.trim();
+    if(v&&v.length<4){alert('Mã quá ngắn.');return}
+    if(v)S.auth.view=hp(v);else delete S.auth.view;
+    save();render();alert(v?'Đã đặt mã Quản trị xem.':'Đã xoá mã Quản trị xem.');return
   }
   if(a=='all'){
     curTeams().filter(t=>!lockedNow(t.id)).forEach(t=>t.groups.forEach(g=>g.w.forEach(w=>{const r=A(w.id);if(!r.s&&!r.c&&!isQ(w)&&here(w)){const x=W(w.id);x.s='L';x.c='L'}})));
