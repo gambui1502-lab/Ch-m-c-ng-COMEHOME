@@ -156,6 +156,11 @@ tr.sup td.nm input.sn::placeholder{color:var(--mu);font-style:italic}
       <button data-do="xd">⬇ Xuất Excel ngày này</button>
       <button data-do="xm">⬇ Xuất Excel cả tháng</button>
     </div>
+    <div class="row">
+      <label class="inl">Từ <input type="date" class="xi" data-xr="f"></label>
+      <label class="inl">Đến <input type="date" class="xi" data-xr="t"></label>
+      <button data-do="xr">⬇ Xuất Excel khoảng ngày</button>
+    </div>
   </section>
   <section class="sec adm-only">
     <h4>Chốt công ngày đang xem</h4>
@@ -217,7 +222,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const rd=x=>Math.round(x*100)/100;
-let S,tab='ct',date=iso(new Date()),edit=false,role=null;
+let S,tab='ct',date=iso(new Date()),edit=false,role=null,xFrom='',xTo='',pR='m',pF='',pT='',pTeam='all',pMet='P';
 const isAdmin=()=>role==='admin';
 const isView=()=>role==='view';
 const isMgr=()=>role==='admin'||role==='view';
@@ -381,11 +386,13 @@ function quickHTML(t){
   if(isMgr()||lockedNow(t.id))return '';
   return `<div class="quick"><button class="pr big" data-do="allcur">✔ Chưa chấm → Làm cả ngày</button></div>`;
 }
+const xrg=()=>({a:xFrom||date.slice(0,8)+'01',b:xTo||date});
+const xrHTML=()=>{const x=xrg();return `<label class="inl">Từ <input type="date" class="xi" data-xr="f" value="${x.a}"></label><label class="inl">Đến <input type="date" class="xi" data-xr="t" value="${x.b}"></label>`};
 function doneBarHTML(t){
   const D=S.done[date]&&S.done[date][t.id],L=lockedNow(t.id),adm=isMgr();
   const st=D?`<span class="okst">✔ Đã lưu – chấm xong lúc ${new Date(D.t).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</span>`:'<span class="pst">Chưa bấm Lưu – chấm xong</span>';
   if(adm)return `<div class="donebar">${st}</div>`;
-  return `<div class="act">${L?'':'<button class="pr big" data-do="done">💾 Lưu – chấm xong</button>'}<button class="big" data-do="xd">⬇ Excel ngày</button><button class="big" data-do="xm">⬇ Excel tháng</button></div><div class="donebar">${st}</div>`;
+  return `<div class="act">${L?'':'<button class="pr big" data-do="done">💾 Lưu – chấm xong</button>'}<button class="big" data-do="xd">⬇ Excel ngày</button><button class="big" data-do="xm">⬇ Excel cả tháng</button></div><div class="bar">${xrHTML()}<button class="big" data-do="xr">⬇ Excel khoảng ngày</button></div><div class="donebar">${st}</div>`;
 }
 function lockBarHTML(t){
   const L=S.locks[date]&&S.locks[date][t.id],adm=isAdmin(),dd=date.split('-').reverse().join('/');
@@ -460,7 +467,8 @@ function tsum(t){
     +`<span style="color:var(--cl)">✔ Làm ${lam}</span><span style="color:var(--cp)">Phép ${phep}</span><span style="color:var(--ck)">K.phép ${kp}</span><span>Chưa chấm ${chua}</span>${nq?`<span style="color:var(--dg)">Nghỉ việc ${nq}</span>`:''}`
     +t.groups.filter(g=>g.k).flatMap(g=>g.k).map(n=>`<span>${esc(n)}: <b>${K(n)}</b>${KT(n)?'/'+KT(n):''} người</span>`).join('')+(supNamed(t.id)?`<span>🤝 Hỗ trợ đến ${supNamed(t.id)} người</span>`:'')+`</div>`;
 }
-function sumHTML(){
+function sumHTML(){return sumHTML0()+persHTML()}
+function sumHTML0(){
   const rows=[],tot=Array(10).fill(0);
   S.teams.forEach(t=>{
     const v=Array(10).fill(0);v[8]=supNamed(t.id);
@@ -476,9 +484,46 @@ function sumHTML(){
   return `<div class="wrap"><table class="sum" style="min-width:900px"><thead><tr><th class="l">Tổ</th><th>Tổng nhân sự</th><th>Làm (Chính thức)</th><th>Làm (Thời vụ)</th><th>Tổng Làm</th><th>Phép</th><th>K.phép</th><th>Chưa chấm</th><th>Đội Khoán (người)</th><th>Lượt tăng ca</th><th>Người hỗ trợ đến</th><th>Nghỉ việc</th></tr></thead><tbody>${rows.map(([n,v])=>tr(n,v,'td')).join('')}</tbody><tfoot>${tr('Cả công ty',tot,'td')}</tfoot></table></div>`;
 }
 
+function perRange(){
+  const e=date;let a,b;
+  if(pR=='m'){a=e.slice(0,8)+'01';b=e}
+  else if(pR=='30'){a=addD(e,-29);b=e}
+  else{a=pF||addD(e,-29);b=pT||e;if(a>b)[a,b]=[b,a];if(dl(a,addD(a,366)).indexOf(b)<0)a=addD(b,-365)}
+  return{a,b,days:dl(a,b)};
+}
+function persRows(days,tm){
+  const M=new Map();
+  days.forEach(d=>S.teams.forEach(t=>{if(tm!='all'&&t.id!=tm)return;t.groups.forEach(g=>{if(g.k)return;g.w.forEach(w=>{
+    if(!here(w,d)||isQ(w,d))return;
+    const r=A(w.id,d);let o=M.get(w.id);
+    if(!o){o={id:w.id,name:w.name,team:t.name,P:0,K:0,late:0,down:0,ot:0};M.set(w.id,o)}
+    o.team=t.name;o.name=w.name;
+    o.P+=((r.s=='P')+(r.c=='P'))/2;o.K+=((r.s=='K')+(r.c=='K'))/2;
+    o.late+=tk(r,'late')?1:0;o.down+=tk(r,'down')?1:0;o.ot+=tk(r,'ot')?1:0;
+  })})}));
+  return[...M.values()];
+}
+function persHTML(tid){
+  const tm=tid||pTeam,pr=perRange(),MET=[['P','Nghỉ phép'],['K','Nghỉ không phép'],['late','Đi trễ'],['down','Xuống ca'],['ot','Tăng ca']];
+  const all=persRows(pr.days,tm),rows=all.filter(o=>o[pMet]>0).sort((x,y)=>y[pMet]-x[pMet]||x.name.localeCompare(y.name,'vi'));
+  const sel=`<div class="bar"><label class="inl">Khoảng xem <select class="pi" id="prg">${[['m','Tháng hiện tại'],['30','30 ngày'],['c','Tùy chọn (từ ngày – đến ngày)']].map(([v,n])=>`<option value="${v}" ${pR==v?'selected':''}>${n}</option>`).join('')}</select></label>`
+    +(pR=='c'?`<label class="inl">Từ <input type="date" class="pi" id="pfrom" value="${pr.a}"></label><label class="inl">Đến <input type="date" class="pi" id="pto" value="${pr.b}"></label>`:'')
+    +(tid?'':`<label class="inl">Tổ <select class="pi" id="ptm"><option value="all">Tất cả các tổ</option>${S.teams.map(t=>`<option value="${esc(t.id)}" ${pTeam==t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select></label>`)
+    +`<label class="inl">Xếp hạng theo <select class="pi" id="pmt">${MET.map(([k,n])=>`<option value="${k}" ${pMet==k?'selected':''}>${n}</option>`).join('')}</select></label></div>`;
+  let h=`<h3>🏅 Xếp hạng từng người${tid?' trong tổ':''}</h3>${sel}`;
+  if(!rows.length)return h+`<p class="hint">Không có ai có lượt “${MET.find(m=>m[0]==pMet)[1]}” từ ${pr.a.split('-').reverse().join('/')} đến ${pr.b.split('-').reverse().join('/')}${tm!='all'?' trong tổ này':''}.</p>`;
+  let rk=0,last=null;
+  const v=x=>x?f1(x):'<span style="color:var(--mu)">·</span>',hd=k=>k==pMet?' style="background:color-mix(in srgb,var(--pr) 18%,var(--card))"':'';
+  h+=`<div class="wrap"><table class="sum" style="min-width:720px"><thead><tr><th>Hạng</th><th class="l">Họ và tên</th><th class="l">Tổ</th>${MET.map(([k,n])=>`<th${hd(k)}>${n}</th>`).join('')}</tr></thead><tbody>`
+   +rows.map((o,i)=>{if(o[pMet]!==last){rk=i+1;last=o[pMet]}return `<tr><td><b>${rk}</b></td><td class="l"><b>${esc(o.name)}</b></td><td class="l">${esc(o.team)}</td>${MET.map(([k])=>`<td${hd(k)}>${v(o[k])}</td>`).join('')}</tr>`}).join('')
+   +`</tbody></table></div><div class="hint">Từ ${pr.a.split('-').reverse().join('/')} đến ${pr.b.split('-').reverse().join('/')} · ${rows.length} người có lượt “${MET.find(m=>m[0]==pMet)[1]}” (không hiện người = 0). Phép / Không phép tính theo ngày công (1 buổi = 0,5 ngày); Đi trễ, Xuống ca, Tăng ca tính theo số lượt (ngày). Chỉ tính những ngày đã chấm công.</div>`;
+  return h;
+}
+
 function render(){
   if(connecting){document.body.classList.add('locked');$('#lr').innerHTML='';$('#lm').textContent='Đang kết nối dữ liệu…';return}
-  if(role&&role!=='admin'&&!S.teams.some(t=>t.id==role))role=null;
+  if(role&&role!=='admin'&&role!=='view'&&!S.teams.some(t=>t.id==role))role=null;
+  if(role==='view'&&!S.auth.view)role=null;
   document.body.classList.toggle('locked',!role);
   if(!role){showLock();return}
   const adm=isAdmin(),mgr=isMgr(),vw=isView();
@@ -494,14 +539,15 @@ function render(){
   if(adm)$('#pins').innerHTML=S.teams.map(t=>`<div class="row"><span class="pn">${esc(t.name)}</span><span class="pst">${S.auth.teams[t.id]?'✔ đã đặt mã':'⚠ chưa có mã (tổ chưa đăng nhập được)'}</span><button data-pin="${esc(t.id)}">🔑 Đặt / đổi mã</button></div>`).join('');
   $('#tabs').innerHTML=S.teams.map(t=>`<button class="tab ${tab==t.id?'on':''}" data-tab="${t.id}">${esc(t.name)}${lockedNow(t.id)?' 🔒':''}${S.done[date]&&S.done[date][t.id]?' ✔':''}</button>`).join('')+`<button class="tab ${tab=='sum'?'on':''}" data-tab="sum">Tổng hợp công ty</button><button class="tab ${tab=='dash'?'on':''}" data-tab="dash">📊 Biểu đồ & xếp hạng</button>`;
   $('#dt').value=date;
+  {const x=xrg();document.querySelectorAll('input[data-xr=f]').forEach(i=>i.value=x.a);document.querySelectorAll('input[data-xr=t]').forEach(i=>i.value=x.b)}
   $('#wd').textContent=new Date(date+'T00:00:00').toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
   $('[data-do=edit]').textContent=edit?'✔ Xong sửa':'✎ Sửa danh sách';
   const old=$('#main .wrap'),sx=old?old.scrollLeft:0,sy=old?old.scrollTop:0;
   const tb=edit?`<div class="bar">${tab!='sum'&&tab!='dash'?'<button data-act="rnt">✎ Đổi tên tổ</button><button data-act="delt">🗑 Xoá tổ này</button>':''}<button class="pr" data-act="addt">＋ Thêm tổ mới</button></div>`:'';
   const curT=tab!='sum'&&tab!='dash'?S.teams.find(x=>x.id==tab):null,lkd=!!curT&&lockedNow(curT.id);
-  $('#main').innerHTML=tb+(curT?`<div class="tname">🏷 Tổ: ${esc(curT.name)}</div>`+frameBarHTML(curT)+doneBarHTML(curT)+lockBarHTML(curT):'')+(tab=='dash'?dashHTML():tab=='sum'||!S.teams.length?sumHTML():(x=>tsum(x)+quickHTML(x)+teamHTML(x)+doneBarHTML(x))(S.teams.find(x=>x.id==tab)||S.teams[0]));
-  if(vw){$('#main').querySelectorAll('input:not(#drg):not(#dfrom):not(#dto),select:not(#drg),textarea').forEach(i=>i.disabled=true);$('#main').querySelectorAll('button[data-act]').forEach(i=>i.disabled=true)}
-  if(lkd){$('#main').querySelectorAll('input').forEach(i=>i.disabled=true);if(!adm)$('#main').querySelectorAll('button[data-act]').forEach(i=>i.disabled=true)}
+  $('#main').innerHTML=tb+(curT?`<div class="tname">🏷 Tổ: ${esc(curT.name)}</div>`+frameBarHTML(curT)+doneBarHTML(curT)+lockBarHTML(curT):'')+(tab=='dash'?dashHTML():tab=='sum'||!S.teams.length?sumHTML():(x=>tsum(x)+quickHTML(x)+teamHTML(x)+doneBarHTML(x)+persHTML(x.id))(S.teams.find(x=>x.id==tab)||S.teams[0]));
+  if(vw){$('#main').querySelectorAll('input:not(#drg):not(#dfrom):not(#dto):not(.xi):not(.pi),select:not(#drg):not(.pi),textarea').forEach(i=>i.disabled=true);$('#main').querySelectorAll('button[data-act]').forEach(i=>i.disabled=true)}
+  if(lkd){$('#main').querySelectorAll('input:not(.xi):not(.pi)').forEach(i=>i.disabled=true);if(!adm)$('#main').querySelectorAll('button[data-act]').forEach(i=>i.disabled=true)}
   const nw=$('#main .wrap');if(nw&&tab!='sum'){nw.scrollLeft=sx;nw.scrollTop=sy}
 }
 
@@ -592,6 +638,13 @@ function dashHTML(){
 /* ===== Sự kiện ===== */
 $('#main').addEventListener('change',e=>{
   const t=e.target,d=t.dataset;
+  if(d.xr)return;
+  if(['prg','ptm','pmt','pfrom','pto'].includes(t.id)){
+    if(t.id=='prg'){pR=t.value;if(pR=='c'&&!pF){pT=date;pF=addD(date,-29)}}
+    else if(t.id=='ptm')pTeam=t.value;else if(t.id=='pmt')pMet=t.value;
+    else if(t.id=='pfrom'){if(t.value)pF=t.value}else if(t.value)pT=t.value;
+    render();return
+  }
   if(isView()&&!['drg','dfrom','dto'].includes(t.id)){render();return}
   if(lockedNow(isMgr()?tab:role)){render();return}
   if(d.fr){
@@ -713,8 +766,8 @@ $('#file').addEventListener('change',e=>{
 /* ===== Chức năng nút ===== */
 const curTeams=()=>(!isMgr()?[S.teams.find(x=>x.id==role)]:$('#scope').value=='all'||tab=='sum'||tab=='dash'?S.teams:[S.teams.find(x=>x.id==tab)]).filter(Boolean);
 function doAct(a){
-  if(isView()&&!['logout','xd','xm'].includes(a))return;
-  if(!isAdmin()&&a!='all'&&a!='logout'&&a!='xd'&&a!='xm'&&a!='done'&&a!='allcur')return;
+  if(isView()&&!['logout','xd','xm','xr'].includes(a))return;
+  if(!isAdmin()&&a!='all'&&a!='logout'&&a!='xd'&&a!='xm'&&a!='xr'&&a!='done'&&a!='allcur')return;
   if(a=='allcur'){
     const tid=curTid(),t=S.teams.find(x=>x.id==tid);if(!t||lockedNow(tid))return;
     const todo=[];t.groups.forEach(g=>g.w.forEach(w=>{const r=A(w.id);if(!r.s&&!r.c&&!isQ(w)&&here(w))todo.push(w.id)}));
@@ -756,6 +809,7 @@ function doAct(a){
   else if(a=='edit'){edit=!edit;render()}
   else if(a=='xd')exportXL(false);
   else if(a=='xm')exportXL(true);
+  else if(a=='xr')exportXL('r');
   else if(a=='restore')restore();
   else if(a=='bk')file(JSON.stringify(S),'sao-luu-diem-danh-'+date+'.json','application/json');
   else if(a=='imp')$('#file').click();
@@ -866,10 +920,10 @@ function addDay(wb,name,t,d){
 }
 
 /* Bảng tổng: mọi số liệu là công thức trỏ tới các bảng ngày */
-function addSummary(ws,teams,days,R){
+function addSummary(ws,teams,days,R,lab,xm){
   const NS=15,[y,m]=days[0].split('-');
   ws.columns=[5,28,9,9,9,9,9,9,9,9,9,9,9,9,14].map(width=>({width}));
-  titleRow(ws,1,NS,'BẢNG TỔNG HỢP CHẤM CÔNG THÁNG '+m+'/'+y+(teams.length==1?' – '+teamLab(teams[0]):' – CÔNG TY COMEHOME'),14,1,0,26);
+  titleRow(ws,1,NS,'BẢNG TỔNG HỢP CHẤM CÔNG '+(lab||'THÁNG '+m+'/'+y)+(teams.length==1?' – '+teamLab(teams[0]):' – CÔNG TY COMEHOME'),14,1,0,26);
   titleRow(ws,2,NS,'Số liệu lấy tự động từ các bảng chấm công từng ngày (liên kết bằng công thức)',10,0,1,18);
   band(ws,3,NS,'I. TỔNG HỢP THEO NGÀY','D9E1F2');
   hdrRow(ws,4,['STT','Ngày / Tổ','Sáng: Làm','Sáng: Phép','Sáng: K.phép','Chiều: Làm','Chiều: Phép','Chiều: K.phép','Đi trễ','Ra ngoài','Xuống ca','Tăng ca','Nghỉ việc','Chuyển tổ','Đội Khoán (người)'],34);
@@ -878,7 +932,7 @@ function addSummary(ws,teams,days,R){
   teams.forEach(t=>days.forEach(d=>{
     const I=R[t.id+'|'+d],q=qn(I.name);i++;
     body(r,1,i);
-    const lb=(teams.length>1?t.name+' – ':'')+'Ngày '+(+d.slice(8))+' ('+WK(d)+')';
+    const lb=(teams.length>1?t.name+' – ':'')+'Ngày '+(+d.slice(8))+(xm?'/'+(+d.slice(5,7)):'')+' ('+WK(d)+')';
     body(r,2,{text:lb,hyperlink:'#'+q+'!A1'},LEF);
     for(let c=3;c<=14;c++){body(r,c,{formula:`${q}!${cl(c)}${I.tot}`,result:I.cnt[c-3]});T[c-3]+=I.cnt[c-3]}
     body(r,15,I.kh.length?{formula:I.kh.map(x=>`${q}!C${x}`).join('+'),result:I.khs}:0);T[12]+=I.khs;
@@ -922,27 +976,41 @@ function addSummary(ws,teams,days,R){
 async function exportXL(month){
   if(!window.ExcelJS){alert('Chưa tải được thư viện Excel. Hãy kết nối mạng rồi tải lại trang (chỉ cần mạng lần đầu).');return}
   const teams=curTeams().filter(Boolean);if(!teams.length)return;
+  const ids=new Set(),kn=new Set();
+  teams.forEach(t=>t.groups.forEach(g=>{g.w.forEach(w=>ids.add(w.id));(g.k||[]).forEach(n=>kn.add(n))}));
+  const has0=d=>Object.keys(S.att[d]||{}).some(i=>ids.has(i))||Object.keys(S.cnt[d]||{}).some(n=>kn.has(n));
+  const keys=[...new Set([...Object.keys(S.att),...Object.keys(S.cnt)])];
+  let days=[date],lab='',xm=false,fn='Cham_cong_'+date;
+  if(month==='r'){
+    let{a,b}=xrg();if(a>b)[a,b]=[b,a];
+    if(dl(a,addD(a,92)).indexOf(b)<0){alert('Chọn khoảng tối đa 93 ngày để xuất Excel.');return}
+    days=keys.filter(k=>k>=a&&k<=b&&has0(k)).sort();
+    if(!days.length){alert('Không có dữ liệu chấm công trong khoảng ngày này.');return}
+    xm=a.slice(0,7)!=b.slice(0,7);
+    const f=x=>x.split('-').reverse().join('/');
+    lab='TỪ '+f(a)+' ĐẾN '+f(b);fn='Cham_cong_'+a+'_den_'+b;
+  }else if(month){
+    const ym=date.slice(0,7);
+    days=[...new Set([...keys,date].filter(k=>k.startsWith(ym)&&(k==date||has0(k))))].sort();
+    fn='Cham_cong_thang_'+ym;
+  }
   if(teams.length==1){
     const t=teams[0],def=teamLab(t),v=prompt('Tên tổ in trên tiêu đề file Excel (sửa nếu cần):',def);
     if(v===null)return;
-    const lab=v.trim()||def;if(lab!==def||!(S.xt&&S.xt[t.id])){S.xt[t.id]=lab;save()}
+    const lb=v.trim()||def;if(lb!==def||!(S.xt&&S.xt[t.id])){S.xt[t.id]=lb;save()}
   }
   const multi=teams.length>1,wb=new ExcelJS.Workbook();wb.creator='Comehome';
-  let days=[date];
-  if(month){const ym=date.slice(0,7);const ids=new Set(),kn=new Set();
-    teams.forEach(t=>t.groups.forEach(g=>{g.w.forEach(w=>ids.add(w.id));(g.k||[]).forEach(n=>kn.add(n))}));
-    const has=d=>d==date||Object.keys(S.att[d]||{}).some(i=>ids.has(i))||Object.keys(S.cnt[d]||{}).some(n=>kn.has(n));
-    days=[...new Set([...Object.keys(S.att),...Object.keys(S.cnt),date].filter(k=>k.startsWith(ym)&&has(k)))].sort()}
   const sw=month?wb.addWorksheet('Tổng hợp',{pageSetup:PS(0)}):null,R={};
   teams.forEach(t=>days.forEach(d=>{
-    const nm=((multi?t.name+' ':'Ngày ')+(+d.slice(8))).replace(/[\\\/?*\[\]:]/g,'-').slice(0,31);
+    const nm=(xm?(multi?t.name.slice(0,24)+' ':'Ngày ')+(+d.slice(8))+'-'+(+d.slice(5,7)):(multi?t.name+' ':'Ngày ')+(+d.slice(8))).replace(/[\\\/?*\[\]:]/g,'-').slice(0,31);
     R[t.id+'|'+d]=addDay(wb,nm,t,d);
   }));
-  if(month)addSummary(sw,teams,days,R);
+  if(month)addSummary(sw,teams,days,R,lab,xm);
   const buf=await wb.xlsx.writeBuffer();
-  file(buf,(month?'Cham_cong_thang_'+date.slice(0,7):'Cham_cong_'+date)+'.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  file(buf,fn+'.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
+document.addEventListener('change',e=>{const t=e.target,x=t.dataset&&t.dataset.xr;if(!x||!t.value)return;if(x=='f')xFrom=t.value;else xTo=t.value;render()});
 load();
 if(FB_CONFIG.databaseURL){connect()}else{netState('⚠ Chưa bật đồng bộ – dữ liệu chỉ lưu trên máy này',false);initRole()}
 render();
